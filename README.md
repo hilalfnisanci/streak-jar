@@ -1,8 +1,8 @@
 # Streak Jar
 
-Streak Jar, fiziksel "marble jar" alışkanlık yönteminin dijital versiyonudur.
-Bir alışkanlık tamamlandığında kavanoza renkli bir bilye düşer; kavanoz dolduğunda kutlama ekranı tetiklenir.
+Streak Jar is the digital version of the physical "marble jar" habit method.
+When a habit is completed, a colorful marble drops into the jar; when the jar is full, a celebration screen is triggered.
 
-## Durum
+## Status
 
-Bu depo şu an başlangıç aşamasındadır.
+This repository is currently in its initial setup phase.
