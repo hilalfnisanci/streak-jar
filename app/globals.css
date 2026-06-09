@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --cream: #faf7f2;
+  --glass: #dcefea;
+  --coral: #f47c6b;
+  --mint: #7bcfb6;
+  --lavender: #a99be8;
+  --butter: #f6d86b;
+  --sky: #78b9e8;
+  --peach: #f3ad7b;
+  --lilac: #d59bdc;
+  --sage: #9fbe8f;
+  --ink: #31261f;
+  --soft-ink: #7c6a5f;
+  --line: #eadfd2;
+}
+
+@theme inline {
+  --color-cream: var(--cream);
+  --color-glass: var(--glass);
+  --color-coral: var(--coral);
+  --color-mint: var(--mint);
+  --color-lavender: var(--lavender);
+  --color-butter: var(--butter);
+  --color-sky: var(--sky);
+  --color-peach: var(--peach);
+  --color-lilac: var(--lilac);
+  --color-sage: var(--sage);
+  --color-ink: var(--ink);
+  --color-soft-ink: var(--soft-ink);
+  --color-line: var(--line);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-fraunces), ui-serif, Georgia, serif;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    min-height: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+  }
+}

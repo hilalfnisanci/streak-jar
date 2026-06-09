@@ -33,3 +33,21 @@ fastlane/test_output/
 
 # macOS
 .DS_Store
+
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Testing
+coverage/
+*.tsbuildinfo
+
+# Environment
+.env
+.env*.local
+
+# Logs
+*.log
