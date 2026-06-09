@@ -1,11 +1,18 @@
 export const JARS_STORAGE_KEY = "streak-jar.jars";
 
+export type MarbleEntry =
+  | string
+  | {
+      date: string;
+      at: string;
+    };
+
 export type Jar = {
   id: string;
   name: string;
   target: number;
   color: string;
-  marbles: string[];
+  marbles: MarbleEntry[];
   createdAt: string;
 };
 
