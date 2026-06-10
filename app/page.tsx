@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { type Jar, loadJars } from "../lib/storage";
+import { type Jar, loadCompletedJars, loadJars } from "../lib/storage";
 
 const emptyStateMarbleColors = [
   "bg-coral",
@@ -150,9 +150,14 @@ function JarCard({ jar }: { jar: Jar }) {
   return (
     <Link
       aria-label={`Open ${jar.name}`}
-      className={`group flex min-h-72 flex-col items-center rounded-lg border ${colorStyles.border} ${colorStyles.tint} px-5 py-6 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream`}
+      className={`group relative flex min-h-72 flex-col items-center rounded-lg border ${colorStyles.border} ${colorStyles.tint} px-5 py-6 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream`}
       href={`/jars/${jar.id}`}
     >
+      {jar.completedAt ? (
+        <span className="absolute right-3 top-3 rounded-full border border-mint/70 bg-cream px-3 py-1 text-xs font-semibold text-ink shadow-sm">
+          ✓ Complete
+        </span>
+      ) : null}
       <MiniJar jar={jar} />
       <h2 className="mt-5 w-full truncate font-heading text-2xl font-semibold text-ink">
         {jar.name}
@@ -166,12 +171,14 @@ function JarCard({ jar }: { jar: Jar }) {
 
 export default function Home() {
   const [jars, setJars] = useState<Jar[]>([]);
+  const [completedJars, setCompletedJars] = useState<Jar[]>([]);
 
   useEffect(() => {
     setJars(loadJars());
+    setCompletedJars(loadCompletedJars());
   }, []);
 
-  if (jars.length === 0) {
+  if (jars.length === 0 && completedJars.length === 0) {
     return <EmptyState />;
   }
 
@@ -188,11 +195,26 @@ export default function Home() {
           + New jar
         </Link>
       </div>
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {jars.map((jar) => (
-          <JarCard jar={jar} key={jar.id} />
-        ))}
-      </div>
+      {jars.length > 0 ? (
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {jars.map((jar) => (
+            <JarCard jar={jar} key={jar.id} />
+          ))}
+        </div>
+      ) : null}
+
+      {completedJars.length > 0 ? (
+        <section className="mt-12 border-t border-line pt-8">
+          <h2 className="font-heading text-3xl font-semibold text-ink">
+            Trophy Shelf
+          </h2>
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {completedJars.map((jar) => (
+              <JarCard jar={jar} key={jar.id} />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }

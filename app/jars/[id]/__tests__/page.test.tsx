@@ -1,6 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
-import { type Jar, JARS_STORAGE_KEY } from "../../../../lib/storage";
+import {
+  type Jar,
+  type JarStorage,
+  JARS_STORAGE_KEY,
+} from "../../../../lib/storage";
 import JarDetailPage from "../page";
 
 const routeParams = vi.hoisted(() => ({ id: "jar-1" }));
@@ -9,12 +13,30 @@ vi.mock("next/navigation", () => ({
   useParams: () => routeParams,
 }));
 
-function seedJars(jars: Jar[]) {
+function seedStorage(jars: Jar[], completed: Jar[] = []) {
+  localStorage.setItem(
+    JARS_STORAGE_KEY,
+    JSON.stringify({
+      jars,
+      completed,
+    }),
+  );
+}
+
+function seedLegacyJars(jars: Jar[]) {
   localStorage.setItem(JARS_STORAGE_KEY, JSON.stringify(jars));
 }
 
-function getStoredJars() {
-  return JSON.parse(localStorage.getItem(JARS_STORAGE_KEY) ?? "[]") as Jar[];
+function getStoredStorage() {
+  return JSON.parse(
+    localStorage.getItem(JARS_STORAGE_KEY) ?? '{"jars":[],"completed":[]}',
+  ) as JarStorage;
+}
+
+function advanceToCelebration() {
+  act(() => {
+    vi.advanceTimersByTime(650);
+  });
 }
 
 describe("JarDetailPage", () => {
@@ -30,7 +52,7 @@ describe("JarDetailPage", () => {
   });
 
   it("adds today's marble to localStorage and updates the page", () => {
-    seedJars([
+    seedStorage([
       {
         id: "jar-1",
         name: "Daily reading",
@@ -55,27 +77,31 @@ describe("JarDetailPage", () => {
       screen.getByRole("button", { name: "Done for today ✓" }),
     ).toBeDisabled();
     expect(screen.getByText("3 / 5 marbles")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "Daily reading jar is 60% full" }),
     ).toBeInTheDocument();
-    expect(getStoredJars()).toEqual([
-      {
-        id: "jar-1",
-        name: "Daily reading",
-        target: 5,
-        color: "mint",
-        marbles: [
-          { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
-          { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
-          { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
-        ],
-        createdAt: "2026-06-01T12:00:00.000Z",
-      },
-    ]);
+    expect(getStoredStorage()).toEqual({
+      jars: [
+        {
+          id: "jar-1",
+          name: "Daily reading",
+          target: 5,
+          color: "mint",
+          marbles: [
+            { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
+            { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
+            { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
+          ],
+          createdAt: "2026-06-01T12:00:00.000Z",
+        },
+      ],
+      completed: [],
+    });
   });
 
   it("disables the add button when today's marble already exists", () => {
-    seedJars([
+    seedStorage([
       {
         id: "jar-1",
         name: "Morning walk",
@@ -101,11 +127,11 @@ describe("JarDetailPage", () => {
 
     fireEvent.click(button);
 
-    expect(getStoredJars()[0].marbles).toHaveLength(3);
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(3);
   });
 
   it("renders the last 14 days with filled, missed, and today-pending states", () => {
-    seedJars([
+    seedStorage([
       {
         id: "jar-1",
         name: "Water plants",
@@ -141,7 +167,7 @@ describe("JarDetailPage", () => {
 
   it("renders a 404 state when the jar id is not stored", () => {
     routeParams.id = "missing-jar";
-    seedJars([
+    seedStorage([
       {
         id: "jar-1",
         name: "Daily reading",
@@ -158,12 +184,14 @@ describe("JarDetailPage", () => {
       screen.getByRole("heading", { name: "Jar not found" }),
     ).toBeInTheDocument();
     expect(screen.getByText("404")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to jars" }))
-      .toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Back to jars" })).toHaveAttribute(
+      "href",
+      "/",
+    );
   });
 
-  it("opens the celebration and stamps completion when the target is reached", () => {
-    seedJars([
+  it("opens the celebration when the exact target-crossing marble lands", () => {
+    seedStorage([
       {
         id: "jar-1",
         name: "Daily reading",
@@ -183,119 +211,81 @@ describe("JarDetailPage", () => {
       screen.getByRole("button", { name: "Add today's marble" }),
     );
 
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    advanceToCelebration();
+
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Jar full!" }),
+      screen.getByRole("heading", {
+        name: "You finished your Daily reading jar! 🎉",
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Completed 🎉")).toBeInTheDocument();
+    expect(
+      screen.getByText("3 marbles, all stacked. That's the whole jar."),
+    ).toBeInTheDocument();
 
-    const [storedJar] = getStoredJars();
+    const [storedJar] = getStoredStorage().jars;
 
     expect(storedJar.marbles).toHaveLength(3);
-    expect(storedJar.completedAt).toBe("2026-06-09T12:00:00.000Z");
+    expect(storedJar).not.toHaveProperty("completedAt");
   });
 
-  it("shows completed controls without auto-opening celebration on mount", () => {
-    seedJars([
+  it("dismisses the celebration without completing the jar", () => {
+    seedStorage([
       {
         id: "jar-1",
         name: "Daily reading",
-        target: 3,
+        target: 1,
         color: "mint",
-        marbles: [
-          { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
-          { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
-          { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
-        ],
+        marbles: [],
         createdAt: "2026-06-01T12:00:00.000Z",
-        completedAt: "2026-06-09T12:00:00.000Z",
-      },
-    ]);
-
-    render(<JarDetailPage />);
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByText("Completed 🎉")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Replay celebration" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Start a new round" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Add today's marble" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("replays and closes the celebration for a completed jar", () => {
-    seedJars([
-      {
-        id: "jar-1",
-        name: "Daily reading",
-        target: 3,
-        color: "mint",
-        marbles: [
-          { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
-          { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
-          { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
-        ],
-        createdAt: "2026-06-01T12:00:00.000Z",
-        completedAt: "2026-06-09T12:00:00.000Z",
       },
     ]);
 
     render(<JarDetailPage />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Replay celebration" }),
+      screen.getByRole("button", { name: "Add today's marble" }),
     );
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    advanceToCelebration();
+    fireEvent.click(screen.getByRole("button", { name: "Close celebration" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("Jar full")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Finish this jar" }),
+    ).toBeInTheDocument();
+    expect(getStoredStorage().jars[0]).not.toHaveProperty("completedAt");
+    expect(getStoredStorage().completed).toEqual([]);
   });
 
-  it("gates starting a new round behind confirmation", () => {
-    seedJars([
+  it("pours a completed jar into the trophy shelf", () => {
+    seedStorage([
       {
         id: "jar-1",
         name: "Daily reading",
-        target: 3,
+        target: 1,
         color: "mint",
-        marbles: [
-          { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
-          { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
-          { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
-        ],
+        marbles: [],
         createdAt: "2026-06-01T12:00:00.000Z",
-        completedAt: "2026-06-09T12:00:00.000Z",
       },
     ]);
 
     render(<JarDetailPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Start a new round" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add today's marble" }),
+    );
+    advanceToCelebration();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Pour into trophy shelf" }),
+    );
 
-    expect(
-      screen.getByText("Start a new round? This empties the jar."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Yes, reset" }))
-      .toBeInTheDocument();
-    expect(getStoredJars()[0].marbles).toHaveLength(3);
+    const storage = getStoredStorage();
 
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(
-      screen.queryByText("Start a new round? This empties the jar."),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText("Completed 🎉")).toBeInTheDocument();
-    expect(getStoredJars()[0].marbles).toHaveLength(3);
-  });
-
-  it("clears marbles and completion when a new round is confirmed", () => {
-    seedJars([
+    expect(storage.jars).toEqual([]);
+    expect(storage.completed).toEqual([
       {
         id: "jar-1",
         name: "Daily reading",
@@ -305,36 +295,111 @@ describe("JarDetailPage", () => {
           { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
         ],
         createdAt: "2026-06-01T12:00:00.000Z",
+        completedAt: "2026-06-09T12:00:00.650Z",
+      },
+    ]);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("✓ Complete")).toBeInTheDocument();
+  });
+
+  it("keeps a completed jar on the dashboard", () => {
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 1,
+        color: "mint",
+        marbles: [],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+
+    render(<JarDetailPage />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add today's marble" }),
+    );
+    advanceToCelebration();
+    fireEvent.click(screen.getByRole("button", { name: "Keep on display" }));
+
+    const storage = getStoredStorage();
+
+    expect(storage.completed).toEqual([]);
+    expect(storage.jars).toEqual([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 1,
+        color: "mint",
+        marbles: [
+          { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
+        ],
+        createdAt: "2026-06-01T12:00:00.000Z",
+        completedAt: "2026-06-09T12:00:00.650Z",
+      },
+    ]);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("✓ Complete")).toBeInTheDocument();
+  });
+
+  it("shows completed jars without auto-opening the celebration on mount", () => {
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 3,
+        color: "mint",
+        marbles: [
+          { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
+          { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
+          { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
+        ],
+        createdAt: "2026-06-01T12:00:00.000Z",
         completedAt: "2026-06-09T12:00:00.000Z",
       },
     ]);
 
     render(<JarDetailPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Start a new round" }));
-    fireEvent.click(screen.getByRole("button", { name: "Yes, reset" }));
-
-    const [storedJar] = getStoredJars();
-
-    expect(storedJar.marbles).toEqual([]);
-    expect(storedJar).not.toHaveProperty("completedAt");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("✓ Complete")).toBeInTheDocument();
+    expect(screen.getByText("Complete")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Add today's marble" }),
-    ).toBeEnabled();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add today's marble" }),
-    );
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(getStoredJars()[0].completedAt).toBe(
-      "2026-06-09T12:00:00.000Z",
-    );
+      screen.queryByRole("button", { name: "Add today's marble" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("keeps jars without completedAt in the in-progress flow", () => {
-    seedJars([
+  it("loads poured completed jars from the trophy shelf", () => {
+    seedStorage(
+      [],
+      [
+        {
+          id: "jar-1",
+          name: "Daily reading",
+          target: 3,
+          color: "mint",
+          marbles: [
+            { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
+            { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
+            { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
+          ],
+          createdAt: "2026-06-01T12:00:00.000Z",
+          completedAt: "2026-06-09T12:00:00.000Z",
+        },
+      ],
+    );
+
+    render(<JarDetailPage />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Daily reading" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("✓ Complete")).toBeInTheDocument();
+  });
+
+  it("keeps legacy jars without completedAt in the in-progress flow", () => {
+    seedLegacyJars([
       {
         id: "jar-1",
         name: "Daily reading",
@@ -353,6 +418,6 @@ describe("JarDetailPage", () => {
     expect(
       screen.getByRole("button", { name: "Add today's marble" }),
     ).toBeEnabled();
-    expect(screen.queryByText("Completed 🎉")).not.toBeInTheDocument();
+    expect(screen.queryByText("✓ Complete")).not.toBeInTheDocument();
   });
 });

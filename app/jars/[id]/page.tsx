@@ -2,15 +2,20 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CelebrationModal } from "../../components/celebration-modal";
 import {
+  findJarById,
   type Jar,
   type MarbleEntry,
   loadJars,
+  loadJarStorage,
   saveJars,
+  saveJarStorage,
 } from "../../../lib/storage";
+
+const CELEBRATION_DELAY_MS = 650;
 
 const jarColorStyles = {
   coral: {
@@ -228,17 +233,23 @@ export default function JarDetailPage() {
   const [jar, setJar] = useState<Jar | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
-  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
+  const celebrationTimerRef = useRef<number | null>(null);
   const today = getTodayDate();
 
   useEffect(() => {
-    const storedJar = loadJars().find(
-      (candidateJar) => candidateJar.id === jarId,
-    );
+    const storedJar = findJarById(jarId);
 
     setJar(storedJar ?? null);
     setHasLoaded(true);
   }, [jarId]);
+
+  useEffect(() => {
+    return () => {
+      if (celebrationTimerRef.current) {
+        window.clearTimeout(celebrationTimerRef.current);
+      }
+    };
+  }, []);
 
   const marbleDates = useMemo(
     () => getMarbleDateSet(jar?.marbles ?? []),
@@ -260,11 +271,10 @@ export default function JarDetailPage() {
         at: addedAt,
       },
     ];
-    const justCompleted = updatedMarbles.length >= jar.target;
+    const justCompleted = updatedMarbles.length === jar.target;
     const updatedJar: Jar = {
       ...jar,
       marbles: updatedMarbles,
-      ...(justCompleted ? { completedAt: addedAt } : {}),
     };
     const updatedJars = loadJars().map((candidateJar) =>
       candidateJar.id === jar.id ? updatedJar : candidateJar,
@@ -274,27 +284,49 @@ export default function JarDetailPage() {
     setJar(updatedJar);
 
     if (justCompleted) {
-      setIsCelebrating(true);
+      celebrationTimerRef.current = window.setTimeout(() => {
+        setIsCelebrating(true);
+        celebrationTimerRef.current = null;
+      }, CELEBRATION_DELAY_MS);
     }
   };
 
-  const handleStartNewRound = () => {
+  const completeJar = (destination: "display" | "trophy") => {
     if (!jar) {
       return;
     }
 
-    const { completedAt: _completedAt, ...jarWithoutCompletion } = jar;
-    const updatedJar: Jar = {
-      ...jarWithoutCompletion,
-      marbles: [],
+    const completedJar: Jar = {
+      ...jar,
+      completedAt: jar.completedAt ?? new Date().toISOString(),
     };
-    const updatedJars = loadJars().map((candidateJar) =>
-      candidateJar.id === jar.id ? updatedJar : candidateJar,
-    );
+    const storage = loadJarStorage();
+    const activeJars =
+      destination === "display"
+        ? storage.jars.map((candidateJar) =>
+            candidateJar.id === jar.id ? completedJar : candidateJar,
+          )
+        : storage.jars.filter((candidateJar) => candidateJar.id !== jar.id);
+    const nextActiveJars =
+      destination === "display" &&
+      !activeJars.some((candidateJar) => candidateJar.id === jar.id)
+        ? [...activeJars, completedJar]
+        : activeJars;
+    const completedJars =
+      destination === "trophy"
+        ? [
+            completedJar,
+            ...storage.completed.filter(
+              (candidateJar) => candidateJar.id !== jar.id,
+            ),
+          ]
+        : storage.completed.filter((candidateJar) => candidateJar.id !== jar.id);
 
-    saveJars(updatedJars);
-    setJar(updatedJar);
-    setIsConfirmingReset(false);
+    saveJarStorage({
+      jars: nextActiveJars,
+      completed: completedJars,
+    });
+    setJar(completedJar);
     setIsCelebrating(false);
   };
 
@@ -309,6 +341,7 @@ export default function JarDetailPage() {
   const colorStyles = getJarColorStyles(jar.color);
   const fillPercent = getFillPercent(jar);
   const isCompleted = Boolean(jar.completedAt);
+  const isFull = jar.marbles.length >= jar.target;
 
   return (
     <section className="mx-auto min-h-[calc(100vh-88px)] w-full max-w-6xl px-5 pb-16 pt-6">
@@ -330,6 +363,11 @@ export default function JarDetailPage() {
           <h1 className="font-heading text-4xl font-semibold leading-tight text-ink sm:text-5xl">
             {jar.name}
           </h1>
+          {isCompleted ? (
+            <p className="mt-4 inline-flex rounded-full border border-mint/70 bg-mint/20 px-3 py-1 text-sm font-semibold text-ink">
+              ✓ Complete
+            </p>
+          ) : null}
           {streakCount >= 3 ? (
             <p className="mt-4 text-lg font-semibold text-soft-ink">
               {streakCount} days in a row 🔥
@@ -344,53 +382,27 @@ export default function JarDetailPage() {
           {isCompleted ? (
             <div className="mt-8 rounded-lg border border-line bg-white/75 p-5 shadow-sm">
               <p className="font-heading text-2xl font-semibold text-ink">
-                Completed 🎉
+                Complete
               </p>
               <p className="mt-2 max-w-xl text-sm leading-6 text-soft-ink">
-                This round is complete. Replay the celebration or start fresh
-                when you are ready.
+                This jar is finished and saved with its full stack of marbles.
               </p>
-
-              {isConfirmingReset ? (
-                <div className="mt-5 rounded-lg border border-line bg-cream p-4">
-                  <p className="text-sm font-semibold text-ink">
-                    Start a new round? This empties the jar.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
-                      onClick={handleStartNewRound}
-                      type="button"
-                    >
-                      Yes, reset
-                    </button>
-                    <button
-                      className="rounded-lg border border-line bg-white px-5 py-3 text-sm font-semibold text-ink shadow-sm transition hover:border-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
-                      onClick={() => setIsConfirmingReset(false)}
-                      type="button"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <button
-                    className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
-                    onClick={() => setIsCelebrating(true)}
-                    type="button"
-                  >
-                    Replay celebration
-                  </button>
-                  <button
-                    className="rounded-lg border border-line bg-white px-5 py-3 text-sm font-semibold text-ink shadow-sm transition hover:border-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
-                    onClick={() => setIsConfirmingReset(true)}
-                    type="button"
-                  >
-                    Start a new round
-                  </button>
-                </div>
-              )}
+            </div>
+          ) : isFull ? (
+            <div className="mt-8 rounded-lg border border-line bg-white/75 p-5 shadow-sm">
+              <p className="font-heading text-2xl font-semibold text-ink">
+                Jar full
+              </p>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-soft-ink">
+                Choose where this completed jar should live.
+              </p>
+              <button
+                className="mt-5 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+                onClick={() => setIsCelebrating(true)}
+                type="button"
+              >
+                Finish this jar
+              </button>
             </div>
           ) : (
             <button
@@ -409,6 +421,8 @@ export default function JarDetailPage() {
       <CelebrationModal
         jarName={jar.name}
         onClose={() => setIsCelebrating(false)}
+        onKeepOnDisplay={() => completeJar("display")}
+        onPourIntoTrophyShelf={() => completeJar("trophy")}
         open={isCelebrating}
         target={jar.target}
       />

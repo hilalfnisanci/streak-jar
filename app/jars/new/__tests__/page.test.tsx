@@ -39,16 +39,23 @@ describe("NewJarPage", () => {
     fireEvent.click(screen.getByLabelText("Mint"));
     fireEvent.click(screen.getByRole("button", { name: "Create jar" }));
 
-    expect(JSON.parse(localStorage.getItem(JARS_STORAGE_KEY) ?? "[]")).toEqual([
-      {
-        id: "jar-1",
-        name: "Daily reading",
-        target: 45,
-        color: "mint",
-        marbles: [],
-        createdAt: "2026-06-09T12:00:00.000Z",
-      },
-    ]);
+    expect(
+      JSON.parse(
+        localStorage.getItem(JARS_STORAGE_KEY) ?? '{"jars":[],"completed":[]}',
+      ),
+    ).toEqual({
+      jars: [
+        {
+          id: "jar-1",
+          name: "Daily reading",
+          target: 45,
+          color: "mint",
+          marbles: [],
+          createdAt: "2026-06-09T12:00:00.000Z",
+        },
+      ],
+      completed: [],
+    });
     expect(push).toHaveBeenCalledWith("/");
   });
 
