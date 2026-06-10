@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { CelebrationModal } from "../../components/celebration-modal";
 import {
   type Jar,
   type MarbleEntry,
@@ -226,6 +227,8 @@ export default function JarDetailPage() {
   const jarId = params.id;
   const [jar, setJar] = useState<Jar | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [isCelebrating, setIsCelebrating] = useState(false);
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const today = getTodayDate();
 
   useEffect(() => {
@@ -245,19 +248,23 @@ export default function JarDetailPage() {
   const streakCount = getStreakCount(marbleDates, today);
 
   const handleAddToday = () => {
-    if (!jar || isDoneToday) {
+    if (!jar || isDoneToday || jar.completedAt) {
       return;
     }
 
+    const addedAt = new Date().toISOString();
+    const updatedMarbles = [
+      ...jar.marbles,
+      {
+        date: today,
+        at: addedAt,
+      },
+    ];
+    const justCompleted = updatedMarbles.length >= jar.target;
     const updatedJar: Jar = {
       ...jar,
-      marbles: [
-        ...jar.marbles,
-        {
-          date: today,
-          at: new Date().toISOString(),
-        },
-      ],
+      marbles: updatedMarbles,
+      ...(justCompleted ? { completedAt: addedAt } : {}),
     };
     const updatedJars = loadJars().map((candidateJar) =>
       candidateJar.id === jar.id ? updatedJar : candidateJar,
@@ -265,6 +272,30 @@ export default function JarDetailPage() {
 
     saveJars(updatedJars);
     setJar(updatedJar);
+
+    if (justCompleted) {
+      setIsCelebrating(true);
+    }
+  };
+
+  const handleStartNewRound = () => {
+    if (!jar) {
+      return;
+    }
+
+    const { completedAt: _completedAt, ...jarWithoutCompletion } = jar;
+    const updatedJar: Jar = {
+      ...jarWithoutCompletion,
+      marbles: [],
+    };
+    const updatedJars = loadJars().map((candidateJar) =>
+      candidateJar.id === jar.id ? updatedJar : candidateJar,
+    );
+
+    saveJars(updatedJars);
+    setJar(updatedJar);
+    setIsConfirmingReset(false);
+    setIsCelebrating(false);
   };
 
   if (!hasLoaded) {
@@ -277,6 +308,7 @@ export default function JarDetailPage() {
 
   const colorStyles = getJarColorStyles(jar.color);
   const fillPercent = getFillPercent(jar);
+  const isCompleted = Boolean(jar.completedAt);
 
   return (
     <section className="mx-auto min-h-[calc(100vh-88px)] w-full max-w-6xl px-5 pb-16 pt-6">
@@ -309,18 +341,77 @@ export default function JarDetailPage() {
           <p className="mt-2 text-sm font-medium text-soft-ink">
             {fillPercent}% full
           </p>
-          <button
-            className="mt-8 w-full rounded-lg bg-ink px-5 py-4 text-base font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream disabled:cursor-not-allowed disabled:bg-soft-ink/45 sm:w-auto"
-            disabled={isDoneToday}
-            onClick={handleAddToday}
-            type="button"
-          >
-            {isDoneToday ? "Done for today ✓" : "Add today's marble"}
-          </button>
+          {isCompleted ? (
+            <div className="mt-8 rounded-lg border border-line bg-white/75 p-5 shadow-sm">
+              <p className="font-heading text-2xl font-semibold text-ink">
+                Completed 🎉
+              </p>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-soft-ink">
+                This round is complete. Replay the celebration or start fresh
+                when you are ready.
+              </p>
+
+              {isConfirmingReset ? (
+                <div className="mt-5 rounded-lg border border-line bg-cream p-4">
+                  <p className="text-sm font-semibold text-ink">
+                    Start a new round? This empties the jar.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+                      onClick={handleStartNewRound}
+                      type="button"
+                    >
+                      Yes, reset
+                    </button>
+                    <button
+                      className="rounded-lg border border-line bg-white px-5 py-3 text-sm font-semibold text-ink shadow-sm transition hover:border-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+                      onClick={() => setIsConfirmingReset(false)}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+                    onClick={() => setIsCelebrating(true)}
+                    type="button"
+                  >
+                    Replay celebration
+                  </button>
+                  <button
+                    className="rounded-lg border border-line bg-white px-5 py-3 text-sm font-semibold text-ink shadow-sm transition hover:border-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+                    onClick={() => setIsConfirmingReset(true)}
+                    type="button"
+                  >
+                    Start a new round
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              className="mt-8 w-full rounded-lg bg-ink px-5 py-4 text-base font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream disabled:cursor-not-allowed disabled:bg-soft-ink/45 sm:w-auto"
+              disabled={isDoneToday}
+              onClick={handleAddToday}
+              type="button"
+            >
+              {isDoneToday ? "Done for today ✓" : "Add today's marble"}
+            </button>
+          )}
         </div>
       </div>
 
       <HistoryGrid marbleDates={marbleDates} today={today} color={jar.color} />
+      <CelebrationModal
+        jarName={jar.name}
+        onClose={() => setIsCelebrating(false)}
+        open={isCelebrating}
+        target={jar.target}
+      />
     </section>
   );
 }

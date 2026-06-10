@@ -14,6 +14,7 @@ export type Jar = {
   color: string;
   marbles: MarbleEntry[];
   createdAt: string;
+  completedAt?: string;
 };
 
 export function loadJars(): Jar[] {
