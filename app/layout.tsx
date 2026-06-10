@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { Header } from "./components/header";
-import { fraunces, inter } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,7 +15,7 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang="en">
       <body className="min-h-screen bg-cream font-sans text-ink antialiased">
         <Header />
         <main>{children}</main>

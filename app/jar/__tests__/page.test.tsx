@@ -4,14 +4,8 @@ import {
   type Jar,
   type JarStorage,
   JARS_STORAGE_KEY,
-} from "../../../../lib/storage";
+} from "../../../lib/storage";
 import JarDetailPage from "../page";
-
-const routeParams = vi.hoisted(() => ({ id: "jar-1" }));
-
-vi.mock("next/navigation", () => ({
-  useParams: () => routeParams,
-}));
 
 function seedStorage(jars: Jar[], completed: Jar[] = []) {
   localStorage.setItem(
@@ -39,10 +33,14 @@ function advanceToCelebration() {
   });
 }
 
+function setJarQuery(id: string) {
+  window.history.replaceState({}, "", `http://localhost/jar?id=${id}`);
+}
+
 describe("JarDetailPage", () => {
   beforeEach(() => {
     localStorage.clear();
-    routeParams.id = "jar-1";
+    setJarQuery("jar-1");
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-09T12:00:00.000Z"));
   });
@@ -222,7 +220,7 @@ describe("JarDetailPage", () => {
   });
 
   it("renders a 404 state when the jar id is not stored", () => {
-    routeParams.id = "missing-jar";
+    setJarQuery("missing-jar");
     seedStorage([
       {
         id: "jar-1",
@@ -459,11 +457,12 @@ describe("JarDetailPage", () => {
       {
         id: "jar-1",
         name: "Daily reading",
-        target: 5,
+        target: 3,
         color: "mint",
         marbles: [
           { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
           { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
+          { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
         ],
         createdAt: "2026-06-01T12:00:00.000Z",
       },

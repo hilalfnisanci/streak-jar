@@ -72,7 +72,7 @@ describe("Home", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /^Open / })).toHaveLength(3);
     expect(screen.getByRole("link", { name: "Open Daily reading" }))
-      .toHaveAttribute("href", "/jars/jar-1");
+      .toHaveAttribute("href", "/jar?id=jar-1");
     expect(screen.getByText("12 / 30")).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "Daily reading jar is 40% full" }),
@@ -122,9 +122,9 @@ describe("Home", () => {
       screen.getByRole("heading", { name: "Trophy Shelf" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open Daily reading" }))
-      .toHaveAttribute("href", "/jars/jar-1");
+      .toHaveAttribute("href", "/jar?id=jar-1");
     expect(screen.getByRole("link", { name: "Open Morning walk" }))
-      .toHaveAttribute("href", "/jars/jar-2");
+      .toHaveAttribute("href", "/jar?id=jar-2");
     expect(screen.getAllByText("✓ Complete")).toHaveLength(2);
   });
 });

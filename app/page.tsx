@@ -153,7 +153,7 @@ function JarCard({ jar }: { jar: Jar }) {
     <Link
       aria-label={`Open ${jar.name}`}
       className={`group relative flex min-h-72 flex-col items-center rounded-lg border ${colorStyles.border} ${colorStyles.tint} px-5 py-6 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream`}
-      href={`/jars/${jar.id}`}
+      href={`/jar?id=${encodeURIComponent(jar.id)}`}
     >
       {jar.completedAt ? (
         <span className="absolute right-3 top-3 rounded-full border border-mint/70 bg-cream px-3 py-1 text-xs font-semibold text-ink shadow-sm">

@@ -30,8 +30,10 @@
   --color-ink: var(--ink);
   --color-soft-ink: var(--soft-ink);
   --color-line: var(--line);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans:
+    "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-heading:
+    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
 }
 
 @layer base {

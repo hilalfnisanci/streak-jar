@@ -1,21 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { CelebrationModal } from "../../components/celebration-modal";
+import { CelebrationModal } from "../components/celebration-modal";
 import {
   findJarById,
   type Jar,
   type MarbleEntry,
-  loadJars,
   loadJarStorage,
-  saveJars,
   saveJarStorage,
-} from "../../../lib/storage";
-import { computeStreak } from "../../../lib/streak";
+} from "../../lib/storage";
+import { computeStreak } from "../../lib/streak";
 
 const CELEBRATION_DELAY_MS = 650;
 
@@ -135,6 +132,14 @@ function getDropMessage(streakCount: number) {
 
 function getLastFourteenDays(today: string) {
   return Array.from({ length: 14 }, (_, index) => shiftDate(today, index - 13));
+}
+
+function readJarIdFromLocation() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return new URLSearchParams(window.location.search).get("id") ?? "";
 }
 
 function NotFoundState() {
@@ -284,8 +289,7 @@ function HistoryGrid({
 }
 
 export default function JarDetailPage() {
-  const params = useParams<{ id: string }>();
-  const jarId = params.id;
+  const [jarId, setJarId] = useState("");
   const [jar, setJar] = useState<Jar | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [dropCue, setDropCue] = useState<DropCue | null>(null);
@@ -295,11 +299,13 @@ export default function JarDetailPage() {
   const today = getTodayDate();
 
   useEffect(() => {
-    const storedJar = findJarById(jarId);
+    const currentJarId = readJarIdFromLocation();
+    const storedJar = findJarById(currentJarId);
 
+    setJarId(currentJarId);
     setJar(storedJar ?? null);
     setHasLoaded(true);
-  }, [jarId]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -339,11 +345,14 @@ export default function JarDetailPage() {
       ...jar,
       marbles: updatedMarbles,
     };
-    const updatedJars = loadJars().map((candidateJar) =>
+    const updatedJars = loadJarStorage().jars.map((candidateJar) =>
       candidateJar.id === jar.id ? updatedJar : candidateJar,
     );
 
-    saveJars(updatedJars);
+    saveJarStorage({
+      ...loadJarStorage(),
+      jars: updatedJars,
+    });
     setJar(updatedJar);
     setDropCue({
       marbleKey: getMarbleKey(newMarble, updatedMarbles.length - 1),
@@ -410,7 +419,7 @@ export default function JarDetailPage() {
     return null;
   }
 
-  if (!jar) {
+  if (!jar || !jarId) {
     return <NotFoundState />;
   }
 
