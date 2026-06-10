@@ -3,6 +3,14 @@ import { render, screen } from "@testing-library/react";
 import { JARS_STORAGE_KEY } from "../../lib/storage";
 import Home from "../page";
 
+function getDateKey(offsetDays: number) {
+  const date = new Date();
+
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+
+  return date.toISOString().slice(0, 10);
+}
+
 describe("Home", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -30,7 +38,12 @@ describe("Home", () => {
           name: "Daily reading",
           target: 30,
           color: "mint",
-          marbles: Array.from({ length: 12 }, (_, index) => `m-${index}`),
+          marbles: [
+            getDateKey(-2),
+            getDateKey(-1),
+            getDateKey(0),
+            ...Array.from({ length: 9 }, (_, index) => `m-${index}`),
+          ],
           createdAt: "2026-06-09T12:00:00.000Z",
         },
         {
@@ -64,6 +77,7 @@ describe("Home", () => {
     expect(
       screen.getByRole("img", { name: "Daily reading jar is 40% full" }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("3 day streak")).toHaveTextContent("🔥3");
     expect(screen.getByRole("link", { name: "+ New jar" })).toHaveAttribute(
       "href",
       "/jars/new",
