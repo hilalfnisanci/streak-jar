@@ -14,6 +14,7 @@ import {
   saveJars,
   saveJarStorage,
 } from "../../../lib/storage";
+import { computeStreak } from "../../../lib/streak";
 
 const CELEBRATION_DELAY_MS = 650;
 
@@ -104,18 +105,6 @@ function getFillPercent(jar: Jar) {
   }
 
   return Math.min(100, Math.round((jar.marbles.length / jar.target) * 100));
-}
-
-function getStreakCount(marbleDates: Set<string>, today: string) {
-  let streak = 0;
-  let cursorDate = today;
-
-  while (marbleDates.has(cursorDate)) {
-    streak += 1;
-    cursorDate = shiftDate(cursorDate, -1);
-  }
-
-  return streak;
 }
 
 function getLastFourteenDays(today: string) {
@@ -256,7 +245,7 @@ export default function JarDetailPage() {
     [jar?.marbles],
   );
   const isDoneToday = marbleDates.has(today);
-  const streakCount = getStreakCount(marbleDates, today);
+  const streakCount = computeStreak(jar?.marbles ?? []);
 
   const handleAddToday = () => {
     if (!jar || isDoneToday || jar.completedAt) {
@@ -369,7 +358,7 @@ export default function JarDetailPage() {
             </p>
           ) : null}
           {streakCount >= 3 ? (
-            <p className="mt-4 text-lg font-semibold text-soft-ink">
+            <p className="mt-4 inline-flex rounded-full border border-butter/70 bg-butter/20 px-3 py-1 text-sm font-semibold text-ink">
               {streakCount} days in a row 🔥
             </p>
           ) : null}

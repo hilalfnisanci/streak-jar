@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { type Jar, loadCompletedJars, loadJars } from "../lib/storage";
+import { computeStreak } from "../lib/streak";
 
 const emptyStateMarbleColors = [
   "bg-coral",
@@ -146,6 +147,7 @@ function MiniJar({ jar }: { jar: Jar }) {
 
 function JarCard({ jar }: { jar: Jar }) {
   const colorStyles = getJarColorStyles(jar.color);
+  const streakCount = computeStreak(jar.marbles);
 
   return (
     <Link
@@ -165,6 +167,15 @@ function JarCard({ jar }: { jar: Jar }) {
       <p className="mt-2 text-sm font-semibold text-soft-ink">
         {jar.marbles.length} / {jar.target}
       </p>
+      {streakCount >= 3 ? (
+        <p
+          aria-label={`${streakCount} day streak`}
+          className="mt-3 inline-flex items-center gap-1 rounded-full border border-butter/70 bg-butter/20 px-2.5 py-1 text-xs font-semibold text-ink"
+        >
+          <span aria-hidden="true">🔥</span>
+          <span>{streakCount}</span>
+        </p>
+      ) : null}
     </Link>
   );
 }
