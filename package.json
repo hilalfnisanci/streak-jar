@@ -12,6 +12,7 @@
     "vitest": "vitest"
   },
   "dependencies": {
+    "framer-motion": "^12.40.0",
     "next": "^15.5.19",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

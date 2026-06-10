@@ -81,6 +81,7 @@ describe("JarDetailPage", () => {
     expect(
       screen.getByRole("img", { name: "Daily reading jar is 60% full" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Keep going")).toBeInTheDocument();
     expect(getStoredStorage()).toEqual({
       jars: [
         {
@@ -124,10 +125,65 @@ describe("JarDetailPage", () => {
 
     expect(button).toBeDisabled();
     expect(screen.getByText("3 days in a row 🔥")).toBeInTheDocument();
+    expect(screen.queryByText("Keep going")).not.toBeInTheDocument();
 
     fireEvent.click(button);
 
     expect(getStoredStorage().jars[0].marbles).toHaveLength(3);
+  });
+
+  it("shows a short drop message for a new streak", () => {
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 5,
+        color: "mint",
+        marbles: [],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+
+    render(<JarDetailPage />);
+
+    expect(screen.queryByText("Nice!")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add today's marble" }),
+    );
+
+    expect(screen.getByText("Nice!")).toBeInTheDocument();
+  });
+
+  it("shows the streak milestone in the drop message", () => {
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 14,
+        color: "mint",
+        marbles: [
+          { date: "2026-05-31", at: "2026-05-31T12:00:00.000Z" },
+          { date: "2026-06-01", at: "2026-06-01T12:00:00.000Z" },
+          { date: "2026-06-02", at: "2026-06-02T12:00:00.000Z" },
+          { date: "2026-06-03", at: "2026-06-03T12:00:00.000Z" },
+          { date: "2026-06-04", at: "2026-06-04T12:00:00.000Z" },
+          { date: "2026-06-05", at: "2026-06-05T12:00:00.000Z" },
+          { date: "2026-06-06", at: "2026-06-06T12:00:00.000Z" },
+          { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
+          { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
+        ],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+
+    render(<JarDetailPage />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add today's marble" }),
+    );
+
+    expect(screen.getByText("10 in a row!")).toBeInTheDocument();
   });
 
   it("renders the last 14 days with filled, missed, and today-pending states", () => {
