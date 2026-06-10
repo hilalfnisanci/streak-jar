@@ -79,6 +79,16 @@
   animation: confetti-fall linear infinite;
 }
 
+.celebration-pattern {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--ink) 16%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 22px 22px;
+  opacity: 0.7;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .confetti-piece {
     animation: none;

@@ -69,4 +69,48 @@ describe("Home", () => {
       "/jars/new",
     );
   });
+
+  it("renders kept jars with a complete ribbon and poured jars on the trophy shelf", async () => {
+    localStorage.setItem(
+      JARS_STORAGE_KEY,
+      JSON.stringify({
+        jars: [
+          {
+            id: "jar-1",
+            name: "Daily reading",
+            target: 3,
+            color: "mint",
+            marbles: Array.from({ length: 3 }, (_, index) => `m-${index}`),
+            createdAt: "2026-06-01T12:00:00.000Z",
+            completedAt: "2026-06-09T12:00:00.000Z",
+          },
+        ],
+        completed: [
+          {
+            id: "jar-2",
+            name: "Morning walk",
+            target: 2,
+            color: "coral",
+            marbles: Array.from({ length: 2 }, (_, index) => `w-${index}`),
+            createdAt: "2026-06-01T12:00:00.000Z",
+            completedAt: "2026-06-09T12:00:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    render(<Home />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Your jars" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Trophy Shelf" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Daily reading" }))
+      .toHaveAttribute("href", "/jars/jar-1");
+    expect(screen.getByRole("link", { name: "Open Morning walk" }))
+      .toHaveAttribute("href", "/jars/jar-2");
+    expect(screen.getAllByText("✓ Complete")).toHaveLength(2);
+  });
 });
