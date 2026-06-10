@@ -68,5 +68,9 @@ describe("Home", () => {
       "href",
       "/jars/new",
     );
+    expect(screen.getByRole("link", { name: "🏆 Shelf" })).toHaveAttribute(
+      "href",
+      "/shelf",
+    );
   });
 });

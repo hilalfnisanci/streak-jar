@@ -182,6 +182,12 @@ export default function Home() {
           Your jars
         </h1>
         <Link
+          className="rounded-lg border border-line bg-white px-4 py-3 text-sm font-semibold text-ink shadow-sm transition hover:border-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+          href="/shelf"
+        >
+          🏆 Shelf
+        </Link>
+        <Link
           className="fixed right-5 top-5 z-10 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-cream shadow-md transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
           href="/jars/new"
         >
