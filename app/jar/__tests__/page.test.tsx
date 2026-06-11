@@ -132,28 +132,37 @@ describe("JarDetailPage", () => {
     expect(getStoredStorage().jars[0].marbles).toHaveLength(3);
   });
 
-  it("hides the streak badge when the computed streak is invalid", () => {
-    vi.spyOn(streak, "computeStreak").mockReturnValue(Number.NaN);
-    seedStorage([
-      {
-        id: "jar-1",
-        name: "Morning walk",
-        target: 10,
-        color: "coral",
-        marbles: [
-          { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
-          { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
-          { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
-        ],
-        createdAt: "2026-06-01T12:00:00.000Z",
-      },
-    ]);
+  it.each([
+    ["NaN", Number.NaN],
+    ["Infinity", Number.POSITIVE_INFINITY],
+    ["non-integer", 3.5],
+  ])(
+    "hides the streak badge when the computed streak is %s",
+    (_, streakCount) => {
+      vi.spyOn(streak, "computeStreak").mockReturnValue(streakCount);
+      seedStorage([
+        {
+          id: "jar-1",
+          name: "Morning walk",
+          target: 10,
+          color: "coral",
+          marbles: [
+            { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
+            { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
+            { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
+          ],
+          createdAt: "2026-06-01T12:00:00.000Z",
+        },
+      ]);
 
-    render(<JarDetailPage />);
+      render(<JarDetailPage />);
 
-    expect(screen.queryByText("NaN days in a row 🔥")).not.toBeInTheDocument();
-    expect(screen.queryByText(/days in a row/)).not.toBeInTheDocument();
-  });
+      expect(
+        screen.queryByText(`${streakCount} days in a row 🔥`),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/days in a row/)).not.toBeInTheDocument();
+    },
+  );
 
   it("shows a short drop message for a new streak", () => {
     seedStorage([
