@@ -61,6 +61,24 @@ describe("computeStreak", () => {
     expect(computeStreak(marbles)).toBe(3);
   });
 
+  it("returns a finite non-negative integer for malformed stored marbles", () => {
+    const streak = computeStreak([
+      "",
+      "legacy-id",
+      "2026-06-99",
+      {},
+      { date: undefined },
+      { date: null },
+      { date: Number.NaN },
+      { date: "not-a-date" },
+    ] as unknown as Marble[]);
+
+    expect(Number.isFinite(streak)).toBe(true);
+    expect(Number.isInteger(streak)).toBe(true);
+    expect(streak).toBeGreaterThanOrEqual(0);
+    expect(streak).toBe(0);
+  });
+
   it("returns 0 for marbles only from old dates", () => {
     expect(computeStreak(["2026-05-01", "2026-05-02"])).toBe(0);
   });
