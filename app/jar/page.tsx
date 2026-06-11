@@ -325,6 +325,10 @@ export default function JarDetailPage() {
   );
   const isDoneToday = marbleDates.has(today);
   const streakCount = computeStreak(jar?.marbles ?? []);
+  const shouldShowStreakBadge =
+    Number.isFinite(streakCount) &&
+    Number.isInteger(streakCount) &&
+    streakCount >= 3;
 
   const handleAddToday = () => {
     if (!jar || isDoneToday || jar.completedAt) {
@@ -453,7 +457,7 @@ export default function JarDetailPage() {
               ✓ Complete
             </p>
           ) : null}
-          {streakCount >= 3 ? (
+          {shouldShowStreakBadge ? (
             <p className="mt-4 inline-flex rounded-full border border-butter/70 bg-butter/20 px-3 py-1 text-sm font-semibold text-ink">
               {streakCount} days in a row 🔥
             </p>

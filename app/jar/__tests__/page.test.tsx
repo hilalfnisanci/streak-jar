@@ -5,6 +5,7 @@ import {
   type JarStorage,
   JARS_STORAGE_KEY,
 } from "../../../lib/storage";
+import * as streak from "../../../lib/streak";
 import JarDetailPage from "../page";
 
 function seedStorage(jars: Jar[], completed: Jar[] = []) {
@@ -34,7 +35,7 @@ function advanceToCelebration() {
 }
 
 function setJarQuery(id: string) {
-  window.history.replaceState({}, "", `http://localhost/jar?id=${id}`);
+  window.history.replaceState({}, "", `/jar?id=${id}`);
 }
 
 describe("JarDetailPage", () => {
@@ -46,6 +47,7 @@ describe("JarDetailPage", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -129,6 +131,38 @@ describe("JarDetailPage", () => {
 
     expect(getStoredStorage().jars[0].marbles).toHaveLength(3);
   });
+
+  it.each([
+    ["NaN", Number.NaN],
+    ["Infinity", Number.POSITIVE_INFINITY],
+    ["non-integer", 3.5],
+  ])(
+    "hides the streak badge when the computed streak is %s",
+    (_, streakCount) => {
+      vi.spyOn(streak, "computeStreak").mockReturnValue(streakCount);
+      seedStorage([
+        {
+          id: "jar-1",
+          name: "Morning walk",
+          target: 10,
+          color: "coral",
+          marbles: [
+            { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
+            { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
+            { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
+          ],
+          createdAt: "2026-06-01T12:00:00.000Z",
+        },
+      ]);
+
+      render(<JarDetailPage />);
+
+      expect(
+        screen.queryByText(`${streakCount} days in a row 🔥`),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/days in a row/)).not.toBeInTheDocument();
+    },
+  );
 
   it("shows a short drop message for a new streak", () => {
     seedStorage([
@@ -457,12 +491,12 @@ describe("JarDetailPage", () => {
       {
         id: "jar-1",
         name: "Daily reading",
-        target: 3,
+        target: 4,
         color: "mint",
         marbles: [
+          { date: "2026-06-06", at: "2026-06-06T12:00:00.000Z" },
           { date: "2026-06-07", at: "2026-06-07T12:00:00.000Z" },
           { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
-          { date: "2026-06-09", at: "2026-06-09T12:00:00.000Z" },
         ],
         createdAt: "2026-06-01T12:00:00.000Z",
       },

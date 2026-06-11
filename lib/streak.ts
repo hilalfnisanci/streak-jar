@@ -8,8 +8,26 @@ function getDateKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function getMarbleDate(marble: Marble) {
-  return typeof marble === "string" ? marble : marble.date;
+function getMarbleDate(marble: unknown) {
+  if (typeof marble === "string") {
+    return marble;
+  }
+
+  if (marble && typeof marble === "object" && "date" in marble) {
+    const date = (marble as { date?: unknown }).date;
+
+    return typeof date === "string" ? date : "";
+  }
+
+  return "";
+}
+
+function normalizeStreakCount(streak: number) {
+  if (!Number.isFinite(streak)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(streak));
 }
 
 function shiftDateKey(dateKey: string, offsetDays: number) {
@@ -35,5 +53,5 @@ export function computeStreak(marbles: Marble[]): number {
     cursorDate = shiftDateKey(cursorDate, -1);
   }
 
-  return streak;
+  return normalizeStreakCount(streak);
 }
