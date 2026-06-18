@@ -82,6 +82,10 @@ describe("Home", () => {
       "href",
       "/jars/new",
     );
+    expect(screen.getByRole("link", { name: "🏆 Shelf" })).toHaveAttribute(
+      "href",
+      "/shelf",
+    );
   });
 
   it("renders kept jars with a complete ribbon and poured jars on the trophy shelf", async () => {
