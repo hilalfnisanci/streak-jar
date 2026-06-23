@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CelebrationModal } from "../components/celebration-modal";
@@ -18,11 +17,6 @@ import {
 import { computeStreak } from "../../lib/streak";
 
 const CELEBRATION_DELAY_MS = 650;
-
-type DropCue = {
-  marbleKey: string;
-  message: string;
-};
 
 function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
@@ -63,18 +57,6 @@ function getFillPercent(jar: Jar) {
   return Math.min(100, Math.round((jar.marbles.length / jar.target) * 100));
 }
 
-function getDropMessage(streakCount: number) {
-  if (streakCount >= 10) {
-    return `${streakCount} in a row!`;
-  }
-
-  if (streakCount >= 3) {
-    return "Keep going";
-  }
-
-  return "Nice!";
-}
-
 function getLastFourteenDays(today: string) {
   return Array.from({ length: 14 }, (_, index) => shiftDate(today, index - 13));
 }
@@ -109,8 +91,7 @@ function NotFoundState() {
   );
 }
 
-function LargeJar({ dropCue, jar }: { dropCue: DropCue | null; jar: Jar }) {
-  const shouldReduceMotion = useReducedMotion();
+function LargeJar({ jar }: { jar: Jar }) {
   const colorStyles = getJarColor(jar.color);
   const fillPercent = getFillPercent(jar);
   const previewMarbles = jar.marbles.slice(-24);
@@ -121,22 +102,6 @@ function LargeJar({ dropCue, jar }: { dropCue: DropCue | null; jar: Jar }) {
       className="relative mx-auto h-[430px] w-full max-w-[340px] sm:h-[500px] sm:max-w-[400px]"
       role="img"
     >
-      <AnimatePresence>
-        {dropCue ? (
-          <motion.div
-            animate={{ opacity: 1, y: 0 }}
-            aria-live="polite"
-            className="pointer-events-none absolute -top-2 left-0 right-0 z-20 flex justify-center"
-            exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
-            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
-            transition={{ duration: shouldReduceMotion ? 0 : 0.18 }}
-          >
-            <p className="rounded-full bg-white/95 px-3 py-1 text-sm font-semibold text-ink shadow-sm ring-1 ring-line">
-              {dropCue.message}
-            </p>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
       <div className="absolute left-1/2 top-0 h-10 w-40 -translate-x-1/2 rounded-t-lg border-4 border-ink/75 bg-glass" />
       <div className="absolute left-1/2 top-9 h-12 w-56 -translate-x-1/2 rounded-xl border-4 border-ink/75 bg-glass" />
       <div className="absolute bottom-0 left-1/2 h-[370px] w-full -translate-x-1/2 overflow-hidden rounded-b-[4rem] rounded-t-[2rem] border-4 border-ink/75 bg-white/60 shadow-inner sm:h-[430px]">
@@ -144,41 +109,21 @@ function LargeJar({ dropCue, jar }: { dropCue: DropCue | null; jar: Jar }) {
           className={`absolute bottom-0 left-0 w-full transition-all ${colorStyles.fill}`}
           style={{ height: `${fillPercent}%` }}
         />
-        <motion.div
+        <div
           aria-hidden="true"
           className="absolute inset-x-10 bottom-8 grid grid-cols-4 gap-3 sm:grid-cols-6"
-          layout
         >
           {previewMarbles.map((marble, index) => {
             const marbleKey = getMarbleKey(marble, index);
-            const isDropping = dropCue?.marbleKey === marbleKey;
 
             return (
-              <motion.span
-                animate={{ scale: 1, y: 0 }}
+              <span
                 className={`h-8 w-8 rounded-full shadow-sm ring-2 ring-white/80 ${colorStyles.solid}`}
-                initial={
-                  isDropping && !shouldReduceMotion
-                    ? { scale: 0.95, y: -40 }
-                    : false
-                }
                 key={marbleKey}
-                layout
-                transition={
-                  isDropping && !shouldReduceMotion
-                    ? {
-                        bounce: 0.32,
-                        damping: 14,
-                        duration: 0.6,
-                        stiffness: 360,
-                        type: "spring",
-                      }
-                    : { duration: 0 }
-                }
               />
             );
           })}
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -237,10 +182,8 @@ export default function JarDetailPage() {
   const [jarId, setJarId] = useState("");
   const [jar, setJar] = useState<Jar | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [dropCue, setDropCue] = useState<DropCue | null>(null);
   const [isCelebrating, setIsCelebrating] = useState(false);
   const celebrationTimerRef = useRef<number | null>(null);
-  const dropCueTimerRef = useRef<number | null>(null);
   const today = getTodayDate();
 
   useEffect(() => {
@@ -256,10 +199,6 @@ export default function JarDetailPage() {
     return () => {
       if (celebrationTimerRef.current) {
         window.clearTimeout(celebrationTimerRef.current);
-      }
-
-      if (dropCueTimerRef.current) {
-        window.clearTimeout(dropCueTimerRef.current);
       }
     };
   }, []);
@@ -303,19 +242,6 @@ export default function JarDetailPage() {
       jars: updatedJars,
     });
     setJar(updatedJar);
-    setDropCue({
-      marbleKey: getMarbleKey(newMarble, updatedMarbles.length - 1),
-      message: getDropMessage(computeStreak(updatedMarbles)),
-    });
-
-    if (dropCueTimerRef.current) {
-      window.clearTimeout(dropCueTimerRef.current);
-    }
-
-    dropCueTimerRef.current = window.setTimeout(() => {
-      setDropCue(null);
-      dropCueTimerRef.current = null;
-    }, CELEBRATION_DELAY_MS);
 
     if (justCompleted) {
       celebrationTimerRef.current = window.setTimeout(() => {
@@ -392,7 +318,7 @@ export default function JarDetailPage() {
             cn(colorStyles.border, colorStyles.tint, "px-5 py-8"),
           )}
         >
-          <LargeJar dropCue={dropCue} jar={jar} />
+          <LargeJar jar={jar} />
         </aside>
 
         <div>
