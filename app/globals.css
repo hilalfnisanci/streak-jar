@@ -120,9 +120,277 @@
   opacity: 0.7;
 }
 
+.jar {
+  position: relative;
+}
+
+.jar__neck,
+.jar__rim,
+.jar__body {
+  border: 2px solid color-mix(in srgb, var(--ink) 68%, transparent);
+}
+
+.jar__neck,
+.jar__rim {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    100deg,
+    rgb(255 255 255 / 80%) 0%,
+    rgb(220 239 234 / 66%) 48%,
+    rgb(255 255 255 / 62%) 100%
+  );
+  box-shadow:
+    inset 2px 1px 0 rgb(255 255 255 / 80%),
+    0 2px 3px rgb(49 38 31 / 10%);
+}
+
+.jar__body {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  overflow: hidden;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    105deg,
+    rgb(255 255 255 / 72%) 0%,
+    rgb(220 239 234 / 38%) 46%,
+    rgb(255 255 255 / 55%) 100%
+  );
+  box-shadow:
+    inset 8px 0 14px rgb(255 255 255 / 50%),
+    inset -8px 0 14px rgb(49 38 31 / 8%),
+    inset 0 -10px 12px rgb(49 38 31 / 12%),
+    0 9px 15px rgb(49 38 31 / 10%);
+}
+
+.jar__fill,
+.jar__preview-tint {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 0;
+}
+
+.jar__fill {
+  transition: height 240ms ease-out;
+}
+
+.jar__fill::after,
+.jar__preview-tint::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(110deg, rgb(255 255 255 / 28%), transparent 42%);
+}
+
+.jar__preview-tint {
+  top: 0;
+  opacity: 0.72;
+}
+
+.jar__base {
+  position: absolute;
+  z-index: 3;
+  right: 12%;
+  bottom: 4px;
+  left: 12%;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgb(255 255 255 / 46%), rgb(49 38 31 / 14%));
+  opacity: 0.72;
+}
+
+.jar__marbles {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+}
+
+.jar__marble {
+  position: relative;
+  display: block;
+  border-radius: 9999px;
+  box-shadow:
+    inset -3px -4px 5px rgb(49 38 31 / 24%),
+    inset 2px 2px 3px rgb(255 255 255 / 38%),
+    0 3px 5px rgb(49 38 31 / 24%);
+}
+
+.jar__marble::after {
+  position: absolute;
+  top: 17%;
+  left: 22%;
+  width: 31%;
+  height: 23%;
+  border-radius: 9999px;
+  content: "";
+  background: rgb(255 255 255 / 78%);
+  filter: blur(0.4px);
+}
+
+.jar__reflection {
+  position: absolute;
+  z-index: 4;
+  top: 10%;
+  bottom: 12%;
+  left: 13%;
+  width: 15%;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 72%), rgb(255 255 255 / 7%));
+  opacity: 0.8;
+  transform: rotate(5deg);
+}
+
+.jar--mini {
+  width: 7rem;
+  height: 10rem;
+}
+
+.jar--mini .jar__neck {
+  top: 0;
+  width: 3.5rem;
+  height: 1.25rem;
+  border-radius: 0.375rem 0.375rem 0.2rem 0.2rem;
+}
+
+.jar--mini .jar__rim {
+  top: 1rem;
+  width: 5rem;
+  height: 1.25rem;
+  border-radius: 0.5rem;
+}
+
+.jar--mini .jar__body {
+  width: 6rem;
+  height: 8rem;
+  border-radius: 0.75rem 0.75rem 1.75rem 1.75rem;
+}
+
+.jar--mini .jar__marbles {
+  right: 0.75rem;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.375rem;
+}
+
+.jar--mini .jar__marble {
+  width: 1rem;
+  height: 1rem;
+}
+
+.jar--large {
+  width: 100%;
+  max-width: 340px;
+  height: 430px;
+  margin-inline: auto;
+}
+
+.jar--large .jar__neck {
+  top: 0;
+  width: 10rem;
+  height: 2.5rem;
+  border-width: 4px;
+  border-radius: 0.5rem 0.5rem 0.3rem 0.3rem;
+}
+
+.jar--large .jar__rim {
+  top: 2.25rem;
+  width: 14rem;
+  height: 3rem;
+  border-width: 4px;
+  border-radius: 0.75rem;
+}
+
+.jar--large .jar__body {
+  width: 100%;
+  height: 370px;
+  border-width: 4px;
+  border-radius: 2rem 2rem 4rem 4rem;
+}
+
+.jar--large .jar__marbles {
+  right: 2.5rem;
+  bottom: 2rem;
+  left: 2.5rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.jar--large .jar__marble {
+  width: 2rem;
+  height: 2rem;
+}
+
+.jar--preview {
+  width: 10rem;
+  height: 13rem;
+}
+
+.jar--preview .jar__neck {
+  top: 0;
+  width: 5rem;
+  height: 1.75rem;
+  border-radius: 0.375rem 0.375rem 0.2rem 0.2rem;
+}
+
+.jar--preview .jar__rim {
+  top: 1.5rem;
+  width: 6rem;
+  height: 1.5rem;
+  border-radius: 0.5rem;
+}
+
+.jar--preview .jar__body {
+  width: 8rem;
+  height: 10rem;
+  border-radius: 0.75rem 0.75rem 2rem 2rem;
+}
+
+@keyframes jar-marble-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.jar__marble--drop {
+  animation: jar-marble-drop 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (min-width: 640px) {
+  .jar--large {
+    max-width: 400px;
+    height: 500px;
+  }
+
+  .jar--large .jar__body {
+    height: 430px;
+  }
+
+  .jar--large .jar__marbles {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .confetti-piece {
     animation: none;
     opacity: 0;
+  }
+
+  .jar__fill {
+    transition: none;
+  }
+
+  .jar__marble--drop {
+    animation: none;
   }
 }
