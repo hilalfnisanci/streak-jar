@@ -3,77 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { Badge, buttonClasses, cardClasses } from "./components/ui";
+import { cn } from "../lib/cn";
+import {
+  getJarColor,
+  jarColorSolids,
+} from "../lib/jar-colors";
 import { type Jar, loadCompletedJars, loadJars } from "../lib/storage";
 import { computeStreak } from "../lib/streak";
-
-const emptyStateMarbleColors = [
-  "bg-coral",
-  "bg-mint",
-  "bg-lavender",
-  "bg-butter",
-  "bg-sky",
-  "bg-peach",
-  "bg-lilac",
-  "bg-sage",
-] as const;
-
-const jarColorStyles = {
-  coral: {
-    fill: "bg-coral/35",
-    dot: "bg-coral",
-    border: "border-coral/60",
-    tint: "bg-coral/10",
-  },
-  mint: {
-    fill: "bg-mint/35",
-    dot: "bg-mint",
-    border: "border-mint/60",
-    tint: "bg-mint/10",
-  },
-  lavender: {
-    fill: "bg-lavender/35",
-    dot: "bg-lavender",
-    border: "border-lavender/60",
-    tint: "bg-lavender/10",
-  },
-  butter: {
-    fill: "bg-butter/45",
-    dot: "bg-butter",
-    border: "border-butter/70",
-    tint: "bg-butter/15",
-  },
-  sky: {
-    fill: "bg-sky/35",
-    dot: "bg-sky",
-    border: "border-sky/60",
-    tint: "bg-sky/10",
-  },
-  peach: {
-    fill: "bg-peach/35",
-    dot: "bg-peach",
-    border: "border-peach/60",
-    tint: "bg-peach/10",
-  },
-  lilac: {
-    fill: "bg-lilac/35",
-    dot: "bg-lilac",
-    border: "border-lilac/60",
-    tint: "bg-lilac/10",
-  },
-  sage: {
-    fill: "bg-sage/35",
-    dot: "bg-sage",
-    border: "border-sage/60",
-    tint: "bg-sage/10",
-  },
-} as const;
-
-function getJarColorStyles(color: string) {
-  return (
-    jarColorStyles[color as keyof typeof jarColorStyles] ??
-    jarColorStyles.coral
-  );
-}
 
 function getFillPercent(jar: Jar) {
   if (jar.target <= 0) {
@@ -87,7 +24,7 @@ function EmptyState() {
   return (
     <section className="mx-auto flex min-h-[calc(100vh-88px)] w-full max-w-4xl flex-col items-center justify-center px-5 pb-16 text-center">
       <div className="mb-8 grid grid-cols-4 gap-2" aria-hidden="true">
-        {emptyStateMarbleColors.map((color) => (
+        {jarColorSolids.map((color) => (
           <span
             className={`h-5 w-5 rounded-full shadow-sm ring-1 ring-white/70 ${color}`}
             key={color}
@@ -102,7 +39,7 @@ function EmptyState() {
         time.
       </p>
       <Link
-        className="mt-8 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+        className={cn("mt-8", buttonClasses())}
         href="/jars/new"
       >
         Create your first jar
@@ -112,7 +49,7 @@ function EmptyState() {
 }
 
 function MiniJar({ jar }: { jar: Jar }) {
-  const colorStyles = getJarColorStyles(jar.color);
+  const colorStyles = getJarColor(jar.color);
   const fillPercent = getFillPercent(jar);
   const previewMarbles = jar.marbles.slice(0, 12);
 
@@ -135,7 +72,7 @@ function MiniJar({ jar }: { jar: Jar }) {
         >
           {previewMarbles.map((marble, index) => (
             <span
-              className={`h-4 w-4 rounded-full shadow-sm ring-1 ring-white/80 ${colorStyles.dot}`}
+              className={`h-4 w-4 rounded-full shadow-sm ring-1 ring-white/80 ${colorStyles.solid}`}
               key={`${marble}-${index}`}
             />
           ))}
@@ -146,19 +83,25 @@ function MiniJar({ jar }: { jar: Jar }) {
 }
 
 function JarCard({ jar }: { jar: Jar }) {
-  const colorStyles = getJarColorStyles(jar.color);
+  const colorStyles = getJarColor(jar.color);
   const streakCount = computeStreak(jar.marbles);
 
   return (
     <Link
       aria-label={`Open ${jar.name}`}
-      className={`group relative flex min-h-72 flex-col items-center rounded-lg border ${colorStyles.border} ${colorStyles.tint} px-5 py-6 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream`}
+      className={cardClasses(
+        cn(
+          "group relative flex min-h-72 flex-col items-center px-5 py-6 text-center transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream",
+          colorStyles.borderSoft,
+          colorStyles.tint,
+        ),
+      )}
       href={`/jar?id=${encodeURIComponent(jar.id)}`}
     >
       {jar.completedAt ? (
-        <span className="absolute right-3 top-3 rounded-full border border-mint/70 bg-cream px-3 py-1 text-xs font-semibold text-ink shadow-sm">
+        <Badge tone="success" className="absolute right-3 top-3 bg-cream">
           ✓ Complete
-        </span>
+        </Badge>
       ) : null}
       <MiniJar jar={jar} />
       <h2 className="mt-5 w-full truncate font-heading text-2xl font-semibold text-ink">
@@ -168,13 +111,14 @@ function JarCard({ jar }: { jar: Jar }) {
         {jar.marbles.length} / {jar.target}
       </p>
       {streakCount >= 3 ? (
-        <p
+        <Badge
+          tone="streak"
           aria-label={`${streakCount} day streak`}
-          className="mt-3 inline-flex items-center gap-1 rounded-full border border-butter/70 bg-butter/20 px-2.5 py-1 text-xs font-semibold text-ink"
+          className="mt-3 px-2.5"
         >
           <span aria-hidden="true">🔥</span>
           <span>{streakCount}</span>
-        </p>
+        </Badge>
       ) : null}
     </Link>
   );
@@ -200,7 +144,10 @@ export default function Home() {
           Your jars
         </h1>
         <Link
-          className="fixed right-5 top-5 z-10 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-cream shadow-md transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+          className={buttonClasses({
+            size: "sm",
+            className: "fixed right-5 top-5 z-10 py-3 shadow-md",
+          })}
           href="/jars/new"
         >
           + New jar

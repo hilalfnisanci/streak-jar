@@ -100,4 +100,12 @@ describe("NewJarPage", () => {
 
     expect(screen.getByLabelText("Sage jar preview")).toBeInTheDocument();
   });
+
+  it("keeps the target input narrow while the name input fills the field", () => {
+    render(<NewJarPage />);
+
+    expect(screen.getByLabelText("Name")).toHaveClass("w-full");
+    expect(screen.getByLabelText("Target")).toHaveClass("w-36");
+    expect(screen.getByLabelText("Target")).not.toHaveClass("w-full");
+  });
 });

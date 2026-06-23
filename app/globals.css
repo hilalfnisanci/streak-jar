@@ -14,6 +14,24 @@
   --ink: #31261f;
   --soft-ink: #7c6a5f;
   --line: #eadfd2;
+
+  /* Lighter and deeper companion steps for the pastel marble palette. */
+  --coral-tint: color-mix(in srgb, var(--coral) 55%, white);
+  --coral-shade: color-mix(in srgb, var(--coral) 80%, var(--ink));
+  --mint-tint: color-mix(in srgb, var(--mint) 55%, white);
+  --mint-shade: color-mix(in srgb, var(--mint) 80%, var(--ink));
+  --lavender-tint: color-mix(in srgb, var(--lavender) 55%, white);
+  --lavender-shade: color-mix(in srgb, var(--lavender) 80%, var(--ink));
+  --butter-tint: color-mix(in srgb, var(--butter) 55%, white);
+  --butter-shade: color-mix(in srgb, var(--butter) 80%, var(--ink));
+  --sky-tint: color-mix(in srgb, var(--sky) 55%, white);
+  --sky-shade: color-mix(in srgb, var(--sky) 80%, var(--ink));
+  --peach-tint: color-mix(in srgb, var(--peach) 55%, white);
+  --peach-shade: color-mix(in srgb, var(--peach) 80%, var(--ink));
+  --lilac-tint: color-mix(in srgb, var(--lilac) 55%, white);
+  --lilac-shade: color-mix(in srgb, var(--lilac) 80%, var(--ink));
+  --sage-tint: color-mix(in srgb, var(--sage) 55%, white);
+  --sage-shade: color-mix(in srgb, var(--sage) 80%, var(--ink));
 }
 
 @theme inline {
@@ -30,10 +48,21 @@
   --color-ink: var(--ink);
   --color-soft-ink: var(--soft-ink);
   --color-line: var(--line);
-  --font-sans:
-    "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --font-heading:
-    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-sans: var(--font-inter), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-heading: var(--font-fraunces), "Palatino Linotype", "Book Antiqua", Georgia, serif;
+
+  /* Additive layout vocabulary for later redesign stages. */
+  --spacing-layout-xs: 0.5rem;
+  --spacing-layout-sm: 1rem;
+  --spacing-layout-md: 1.25rem;
+  --spacing-layout-lg: 2rem;
+  --spacing-layout-xl: 3rem;
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-panel: 1rem;
+  --radius-pill: 9999px;
+  --shadow-warm-sm: 0 1px 2px color-mix(in srgb, var(--ink) 8%, transparent);
+  --shadow-warm-md: 0 8px 24px color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
 @layer base {
