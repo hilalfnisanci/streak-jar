@@ -103,6 +103,7 @@ export default function NewJarPage() {
             <Input
               aria-describedby={nameError ? "jar-name-error" : undefined}
               aria-invalid={nameError ? "true" : "false"}
+              className="w-full"
               id="jar-name"
               maxLength={60}
               onChange={(event) => {
