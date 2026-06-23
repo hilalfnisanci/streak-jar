@@ -11,36 +11,13 @@ import {
   Field,
   Input,
 } from "../../components/ui";
+import { Jar as JarVisual } from "../../components/jar";
 import { cn } from "../../../lib/cn";
-import { type JarColorStyle, jarColorList } from "../../../lib/jar-colors";
+import { jarColorList } from "../../../lib/jar-colors";
 import { type Jar, loadJars, saveJars } from "../../../lib/storage";
 
 function createJarId() {
   return globalThis.crypto?.randomUUID?.() ?? `jar-${Date.now()}`;
-}
-
-function JarPreview({ color }: { color: JarColorStyle }) {
-  return (
-    <aside
-      className={cardClasses(
-        cn(
-          "flex min-h-[320px] flex-col items-center justify-center border-2 px-8 py-10 text-center",
-          color.border,
-          color.preview,
-        ),
-      )}
-      aria-label={`${color.label} jar preview`}
-    >
-      <div className="relative h-52 w-40">
-        <div className="absolute left-1/2 top-0 h-7 w-20 -translate-x-1/2 rounded-t-md border-2 border-ink/75 bg-glass" />
-        <div className="absolute left-1/2 top-6 h-6 w-24 -translate-x-1/2 rounded-md border-2 border-ink/75 bg-glass" />
-        <div
-          className={`absolute bottom-0 left-1/2 h-40 w-32 -translate-x-1/2 rounded-b-[2rem] rounded-t-xl border-2 border-ink/75 ${color.jarFill} shadow-inner`}
-        />
-      </div>
-      <p className="mt-5 text-sm font-medium text-soft-ink">Empty jar</p>
-    </aside>
-  );
 }
 
 export default function NewJarPage() {
@@ -181,7 +158,18 @@ export default function NewJarPage() {
         </form>
       </div>
 
-      <JarPreview color={selectedColor} />
+      <aside
+        className={cardClasses(
+          cn(
+            "flex min-h-[320px] flex-col items-center justify-center border-2 px-8 py-10 text-center",
+            selectedColor.border,
+            selectedColor.preview,
+          ),
+        )}
+      >
+        <JarVisual color={selectedColor.key} variant="preview" />
+        <p className="mt-5 text-sm font-medium text-soft-ink">Empty jar</p>
+      </aside>
     </section>
   );
 }

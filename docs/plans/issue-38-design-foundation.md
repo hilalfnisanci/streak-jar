@@ -346,7 +346,7 @@ Call sites:
   `<Link>`: use `cardClasses(cn(color.border, color.tint, "<extra layout/padding>"))` on the
   element directly so the tinted border/tint comes from `lib/jar-colors.ts`. Keep their
   hover/focus/translate classes via the `className` arg.
-- new-jar `JarPreview` `<aside>` (`border-2 ... ${previewClass}`) → it uses `border-2`, not
+- new-jar preview `<aside>` (`border-2 ... ${previewClass}`) → it uses `border-2`, not
   the Card default `border`; pass `cardClasses(cn("border-2", color.border, color.preview, "min-h-[320px] …"))` or keep it bespoke. Keeping the `border-2` weight is required to avoid a visual change — pass it explicitly.
 
 ### Step 7 — `app/components/ui/badge.tsx`

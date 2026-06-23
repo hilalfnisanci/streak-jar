@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Badge, buttonClasses, cardClasses } from "./components/ui";
+import { Jar as JarVisual } from "./components/jar";
 import { cn } from "../lib/cn";
 import {
   getJarColor,
@@ -11,14 +12,6 @@ import {
 } from "../lib/jar-colors";
 import { type Jar, loadCompletedJars, loadJars } from "../lib/storage";
 import { computeStreak } from "../lib/streak";
-
-function getFillPercent(jar: Jar) {
-  if (jar.target <= 0) {
-    return 0;
-  }
-
-  return Math.min(100, Math.round((jar.marbles.length / jar.target) * 100));
-}
 
 function EmptyState() {
   return (
@@ -48,40 +41,6 @@ function EmptyState() {
   );
 }
 
-function MiniJar({ jar }: { jar: Jar }) {
-  const colorStyles = getJarColor(jar.color);
-  const fillPercent = getFillPercent(jar);
-  const previewMarbles = jar.marbles.slice(0, 12);
-
-  return (
-    <div
-      aria-label={`${jar.name} jar is ${fillPercent}% full`}
-      className="relative h-40 w-28"
-      role="img"
-    >
-      <div className="absolute left-1/2 top-0 h-5 w-14 -translate-x-1/2 rounded-t-md border-2 border-ink/75 bg-glass" />
-      <div className="absolute left-1/2 top-4 h-5 w-20 -translate-x-1/2 rounded-md border-2 border-ink/75 bg-glass" />
-      <div className="absolute bottom-0 left-1/2 h-32 w-24 -translate-x-1/2 overflow-hidden rounded-b-[1.75rem] rounded-t-xl border-2 border-ink/75 bg-white/60 shadow-inner">
-        <div
-          className={`absolute bottom-0 left-0 w-full ${colorStyles.fill}`}
-          style={{ height: `${fillPercent}%` }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-3 bottom-3 grid grid-cols-3 gap-1.5"
-        >
-          {previewMarbles.map((marble, index) => (
-            <span
-              className={`h-4 w-4 rounded-full shadow-sm ring-1 ring-white/80 ${colorStyles.solid}`}
-              key={`${marble}-${index}`}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function JarCard({ jar }: { jar: Jar }) {
   const colorStyles = getJarColor(jar.color);
   const streakCount = computeStreak(jar.marbles);
@@ -103,7 +62,13 @@ function JarCard({ jar }: { jar: Jar }) {
           ✓ Complete
         </Badge>
       ) : null}
-      <MiniJar jar={jar} />
+      <JarVisual
+        color={jar.color}
+        marbles={jar.marbles}
+        name={jar.name}
+        target={jar.target}
+        variant="mini"
+      />
       <h2 className="mt-5 w-full truncate font-heading text-2xl font-semibold text-ink">
         {jar.name}
       </h2>

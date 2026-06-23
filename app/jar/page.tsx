@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CelebrationModal } from "../components/celebration-modal";
+import { getJarFillPercent, Jar as JarVisual } from "../components/jar";
 import { Badge, Button, buttonClasses, Card, cardClasses } from "../components/ui";
 import { cn } from "../../lib/cn";
 import { getJarColor } from "../../lib/jar-colors";
@@ -33,28 +34,12 @@ function getMarbleDate(marble: MarbleEntry) {
   return typeof marble === "string" ? marble : marble.date;
 }
 
-function getMarbleKey(marble: MarbleEntry, index: number) {
-  if (typeof marble === "string") {
-    return `${marble}-${index}`;
-  }
-
-  return `${marble.date}-${marble.at}`;
-}
-
 function getMarbleDateSet(marbles: MarbleEntry[]) {
   return new Set(
     marbles
       .map((marble) => getMarbleDate(marble))
       .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)),
   );
-}
-
-function getFillPercent(jar: Jar) {
-  if (jar.target <= 0) {
-    return 0;
-  }
-
-  return Math.min(100, Math.round((jar.marbles.length / jar.target) * 100));
 }
 
 function getLastFourteenDays(today: string) {
@@ -88,44 +73,6 @@ function NotFoundState() {
         Back to jars
       </Link>
     </section>
-  );
-}
-
-function LargeJar({ jar }: { jar: Jar }) {
-  const colorStyles = getJarColor(jar.color);
-  const fillPercent = getFillPercent(jar);
-  const previewMarbles = jar.marbles.slice(-24);
-
-  return (
-    <div
-      aria-label={`${jar.name} jar is ${fillPercent}% full`}
-      className="relative mx-auto h-[430px] w-full max-w-[340px] sm:h-[500px] sm:max-w-[400px]"
-      role="img"
-    >
-      <div className="absolute left-1/2 top-0 h-10 w-40 -translate-x-1/2 rounded-t-lg border-4 border-ink/75 bg-glass" />
-      <div className="absolute left-1/2 top-9 h-12 w-56 -translate-x-1/2 rounded-xl border-4 border-ink/75 bg-glass" />
-      <div className="absolute bottom-0 left-1/2 h-[370px] w-full -translate-x-1/2 overflow-hidden rounded-b-[4rem] rounded-t-[2rem] border-4 border-ink/75 bg-white/60 shadow-inner sm:h-[430px]">
-        <div
-          className={`absolute bottom-0 left-0 w-full transition-all ${colorStyles.fill}`}
-          style={{ height: `${fillPercent}%` }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-10 bottom-8 grid grid-cols-4 gap-3 sm:grid-cols-6"
-        >
-          {previewMarbles.map((marble, index) => {
-            const marbleKey = getMarbleKey(marble, index);
-
-            return (
-              <span
-                className={`h-8 w-8 rounded-full shadow-sm ring-2 ring-white/80 ${colorStyles.solid}`}
-                key={marbleKey}
-              />
-            );
-          })}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -299,7 +246,7 @@ export default function JarDetailPage() {
   }
 
   const colorStyles = getJarColor(jar.color);
-  const fillPercent = getFillPercent(jar);
+  const fillPercent = getJarFillPercent(jar.marbles.length, jar.target);
   const isCompleted = Boolean(jar.completedAt);
   const isFull = jar.marbles.length >= jar.target;
 
@@ -318,7 +265,13 @@ export default function JarDetailPage() {
             cn(colorStyles.border, colorStyles.tint, "px-5 py-8"),
           )}
         >
-          <LargeJar jar={jar} />
+          <JarVisual
+            color={jar.color}
+            marbles={jar.marbles}
+            name={jar.name}
+            target={jar.target}
+            variant="large"
+          />
         </aside>
 
         <div>
