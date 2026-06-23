@@ -4,99 +4,38 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
 
+import {
+  Button,
+  buttonClasses,
+  cardClasses,
+  Field,
+  Input,
+} from "../../components/ui";
+import { cn } from "../../../lib/cn";
+import { type JarColorStyle, jarColorList } from "../../../lib/jar-colors";
 import { type Jar, loadJars, saveJars } from "../../../lib/storage";
-
-type MarbleColor = {
-  name: string;
-  value: string;
-  swatchClass: string;
-  jarFillClass: string;
-  borderClass: string;
-  previewClass: string;
-};
-
-const marbleColors: MarbleColor[] = [
-  {
-    name: "Coral",
-    value: "coral",
-    swatchClass: "bg-coral",
-    jarFillClass: "bg-coral/30",
-    borderClass: "border-coral/70",
-    previewClass: "bg-coral/20",
-  },
-  {
-    name: "Mint",
-    value: "mint",
-    swatchClass: "bg-mint",
-    jarFillClass: "bg-mint/30",
-    borderClass: "border-mint/70",
-    previewClass: "bg-mint/20",
-  },
-  {
-    name: "Lavender",
-    value: "lavender",
-    swatchClass: "bg-lavender",
-    jarFillClass: "bg-lavender/30",
-    borderClass: "border-lavender/70",
-    previewClass: "bg-lavender/20",
-  },
-  {
-    name: "Butter",
-    value: "butter",
-    swatchClass: "bg-butter",
-    jarFillClass: "bg-butter/30",
-    borderClass: "border-butter/70",
-    previewClass: "bg-butter/20",
-  },
-  {
-    name: "Sky",
-    value: "sky",
-    swatchClass: "bg-sky",
-    jarFillClass: "bg-sky/30",
-    borderClass: "border-sky/70",
-    previewClass: "bg-sky/20",
-  },
-  {
-    name: "Peach",
-    value: "peach",
-    swatchClass: "bg-peach",
-    jarFillClass: "bg-peach/30",
-    borderClass: "border-peach/70",
-    previewClass: "bg-peach/20",
-  },
-  {
-    name: "Lilac",
-    value: "lilac",
-    swatchClass: "bg-lilac",
-    jarFillClass: "bg-lilac/30",
-    borderClass: "border-lilac/70",
-    previewClass: "bg-lilac/20",
-  },
-  {
-    name: "Sage",
-    value: "sage",
-    swatchClass: "bg-sage",
-    jarFillClass: "bg-sage/30",
-    borderClass: "border-sage/70",
-    previewClass: "bg-sage/20",
-  },
-];
 
 function createJarId() {
   return globalThis.crypto?.randomUUID?.() ?? `jar-${Date.now()}`;
 }
 
-function JarPreview({ color }: { color: MarbleColor }) {
+function JarPreview({ color }: { color: JarColorStyle }) {
   return (
     <aside
-      className={`flex min-h-[320px] flex-col items-center justify-center rounded-lg border-2 ${color.borderClass} ${color.previewClass} px-8 py-10 text-center shadow-sm`}
-      aria-label={`${color.name} jar preview`}
+      className={cardClasses(
+        cn(
+          "flex min-h-[320px] flex-col items-center justify-center border-2 px-8 py-10 text-center",
+          color.border,
+          color.preview,
+        ),
+      )}
+      aria-label={`${color.label} jar preview`}
     >
       <div className="relative h-52 w-40">
         <div className="absolute left-1/2 top-0 h-7 w-20 -translate-x-1/2 rounded-t-md border-2 border-ink/75 bg-glass" />
         <div className="absolute left-1/2 top-6 h-6 w-24 -translate-x-1/2 rounded-md border-2 border-ink/75 bg-glass" />
         <div
-          className={`absolute bottom-0 left-1/2 h-40 w-32 -translate-x-1/2 rounded-b-[2rem] rounded-t-xl border-2 border-ink/75 ${color.jarFillClass} shadow-inner`}
+          className={`absolute bottom-0 left-1/2 h-40 w-32 -translate-x-1/2 rounded-b-[2rem] rounded-t-xl border-2 border-ink/75 ${color.jarFill} shadow-inner`}
         />
       </div>
       <p className="mt-5 text-sm font-medium text-soft-ink">Empty jar</p>
@@ -108,14 +47,14 @@ export default function NewJarPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [target, setTarget] = useState("30");
-  const [color, setColor] = useState(marbleColors[0].value);
+  const [color, setColor] = useState(jarColorList[0].key);
   const [nameError, setNameError] = useState("");
   const [targetError, setTargetError] = useState("");
 
   const selectedColor = useMemo(
     () =>
-      marbleColors.find((marbleColor) => marbleColor.value === color) ??
-      marbleColors[0],
+      jarColorList.find((marbleColor) => marbleColor.key === color) ??
+      jarColorList[0],
     [color],
   );
 
@@ -160,17 +99,10 @@ export default function NewJarPage() {
           Create a jar
         </h1>
         <form className="mt-8 space-y-7" noValidate onSubmit={handleSubmit}>
-          <div>
-            <label
-              className="block text-sm font-semibold text-ink"
-              htmlFor="jar-name"
-            >
-              Name
-            </label>
-            <input
+          <Field error={nameError} htmlFor="jar-name" label="Name">
+            <Input
               aria-describedby={nameError ? "jar-name-error" : undefined}
               aria-invalid={nameError ? "true" : "false"}
-              className="mt-2 w-full rounded-lg border border-line bg-white px-4 py-3 text-base text-ink shadow-sm outline-none transition focus:border-ink focus:ring-2 focus:ring-mint/40"
               id="jar-name"
               maxLength={60}
               onChange={(event) => {
@@ -184,27 +116,13 @@ export default function NewJarPage() {
               type="text"
               value={name}
             />
-            {nameError ? (
-              <p
-                className="mt-2 text-sm font-medium text-coral"
-                id="jar-name-error"
-              >
-                {nameError}
-              </p>
-            ) : null}
-          </div>
+          </Field>
 
-          <div>
-            <label
-              className="block text-sm font-semibold text-ink"
-              htmlFor="jar-target"
-            >
-              Target
-            </label>
-            <input
+          <Field error={targetError} htmlFor="jar-target" label="Target">
+            <Input
               aria-describedby={targetError ? "jar-target-error" : undefined}
               aria-invalid={targetError ? "true" : "false"}
-              className="mt-2 w-36 rounded-lg border border-line bg-white px-4 py-3 text-base text-ink shadow-sm outline-none transition focus:border-ink focus:ring-2 focus:ring-mint/40"
+              className="w-36"
               id="jar-target"
               max={365}
               min={5}
@@ -217,52 +135,43 @@ export default function NewJarPage() {
               type="number"
               value={target}
             />
-            {targetError ? (
-              <p
-                className="mt-2 text-sm font-medium text-coral"
-                id="jar-target-error"
-              >
-                {targetError}
-              </p>
-            ) : null}
-          </div>
+          </Field>
 
           <fieldset>
             <legend className="text-sm font-semibold text-ink">Color</legend>
             <div className="mt-3 flex flex-wrap gap-3">
-              {marbleColors.map((marbleColor) => (
+              {jarColorList.map((marbleColor) => (
                 <label
                   className="group cursor-pointer rounded-full"
-                  key={marbleColor.value}
-                  title={marbleColor.name}
+                  key={marbleColor.key}
+                  title={marbleColor.label}
                 >
                   <input
-                    checked={color === marbleColor.value}
+                    checked={color === marbleColor.key}
                     className="peer sr-only"
                     name="color"
-                    onChange={() => setColor(marbleColor.value)}
+                    onChange={() => setColor(marbleColor.key)}
                     type="radio"
-                    value={marbleColor.value}
+                    value={marbleColor.key}
                   />
                   <span
-                    className={`block h-11 w-11 rounded-full border border-white/80 shadow-sm ring-offset-2 ring-offset-cream transition peer-checked:ring-2 peer-checked:ring-ink peer-focus-visible:ring-2 peer-focus-visible:ring-ink ${marbleColor.swatchClass}`}
+                    className={`block h-11 w-11 rounded-full border border-white/80 shadow-sm ring-offset-2 ring-offset-cream transition peer-checked:ring-2 peer-checked:ring-ink peer-focus-visible:ring-2 peer-focus-visible:ring-ink ${marbleColor.solid}`}
                     aria-hidden="true"
                   />
-                  <span className="sr-only">{marbleColor.name}</span>
+                  <span className="sr-only">{marbleColor.label}</span>
                 </label>
               ))}
             </div>
           </fieldset>
 
           <div className="flex flex-wrap gap-3 pt-2">
-            <button
-              className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+            <Button
               type="submit"
             >
               Create jar
-            </button>
+            </Button>
             <Link
-              className="rounded-lg border border-line bg-white px-5 py-3 text-sm font-semibold text-ink shadow-sm transition hover:border-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+              className={buttonClasses({ variant: "secondary" })}
               href="/"
             >
               Cancel

@@ -5,6 +5,9 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CelebrationModal } from "../components/celebration-modal";
+import { Badge, Button, buttonClasses, Card, cardClasses } from "../components/ui";
+import { cn } from "../../lib/cn";
+import { getJarColor } from "../../lib/jar-colors";
 import {
   findJarById,
   type Jar,
@@ -20,64 +23,6 @@ type DropCue = {
   marbleKey: string;
   message: string;
 };
-
-const jarColorStyles = {
-  coral: {
-    fill: "bg-coral/35",
-    dot: "bg-coral",
-    border: "border-coral/70",
-    tint: "bg-coral/10",
-  },
-  mint: {
-    fill: "bg-mint/35",
-    dot: "bg-mint",
-    border: "border-mint/70",
-    tint: "bg-mint/10",
-  },
-  lavender: {
-    fill: "bg-lavender/35",
-    dot: "bg-lavender",
-    border: "border-lavender/70",
-    tint: "bg-lavender/10",
-  },
-  butter: {
-    fill: "bg-butter/45",
-    dot: "bg-butter",
-    border: "border-butter/70",
-    tint: "bg-butter/15",
-  },
-  sky: {
-    fill: "bg-sky/35",
-    dot: "bg-sky",
-    border: "border-sky/70",
-    tint: "bg-sky/10",
-  },
-  peach: {
-    fill: "bg-peach/35",
-    dot: "bg-peach",
-    border: "border-peach/70",
-    tint: "bg-peach/10",
-  },
-  lilac: {
-    fill: "bg-lilac/35",
-    dot: "bg-lilac",
-    border: "border-lilac/70",
-    tint: "bg-lilac/10",
-  },
-  sage: {
-    fill: "bg-sage/35",
-    dot: "bg-sage",
-    border: "border-sage/70",
-    tint: "bg-sage/10",
-  },
-} as const;
-
-function getJarColorStyles(color: string) {
-  return (
-    jarColorStyles[color as keyof typeof jarColorStyles] ??
-    jarColorStyles.coral
-  );
-}
 
 function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
@@ -155,7 +100,7 @@ function NotFoundState() {
         This jar is not saved in this browser.
       </p>
       <Link
-        className="mt-8 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+        className={cn("mt-8", buttonClasses())}
         href="/"
       >
         Back to jars
@@ -166,7 +111,7 @@ function NotFoundState() {
 
 function LargeJar({ dropCue, jar }: { dropCue: DropCue | null; jar: Jar }) {
   const shouldReduceMotion = useReducedMotion();
-  const colorStyles = getJarColorStyles(jar.color);
+  const colorStyles = getJarColor(jar.color);
   const fillPercent = getFillPercent(jar);
   const previewMarbles = jar.marbles.slice(-24);
 
@@ -211,7 +156,7 @@ function LargeJar({ dropCue, jar }: { dropCue: DropCue | null; jar: Jar }) {
             return (
               <motion.span
                 animate={{ scale: 1, y: 0 }}
-                className={`h-8 w-8 rounded-full shadow-sm ring-2 ring-white/80 ${colorStyles.dot}`}
+                className={`h-8 w-8 rounded-full shadow-sm ring-2 ring-white/80 ${colorStyles.solid}`}
                 initial={
                   isDropping && !shouldReduceMotion
                     ? { scale: 0.95, y: -40 }
@@ -248,7 +193,7 @@ function HistoryGrid({
   today: string;
   color: string;
 }) {
-  const colorStyles = getJarColorStyles(color);
+  const colorStyles = getJarColor(color);
   const days = getLastFourteenDays(today);
 
   return (
@@ -272,7 +217,7 @@ function HistoryGrid({
               aria-label={label}
               className={`flex h-11 w-11 items-center justify-center rounded-full border text-xl font-semibold shadow-sm ${
                 hasMarble
-                  ? `${colorStyles.dot} border-transparent text-white`
+                  ? `${colorStyles.solid} border-transparent text-white`
                   : "border-line bg-white text-soft-ink"
               }`}
               key={date}
@@ -427,7 +372,7 @@ export default function JarDetailPage() {
     return <NotFoundState />;
   }
 
-  const colorStyles = getJarColorStyles(jar.color);
+  const colorStyles = getJarColor(jar.color);
   const fillPercent = getFillPercent(jar);
   const isCompleted = Boolean(jar.completedAt);
   const isFull = jar.marbles.length >= jar.target;
@@ -435,7 +380,7 @@ export default function JarDetailPage() {
   return (
     <section className="mx-auto min-h-[calc(100vh-88px)] w-full max-w-6xl px-5 pb-16 pt-6">
       <Link
-        className="inline-flex rounded-lg border border-line bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:border-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+        className={buttonClasses({ variant: "secondary", size: "sm" })}
         href="/"
       >
         Back
@@ -443,7 +388,9 @@ export default function JarDetailPage() {
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:items-center">
         <aside
-          className={`rounded-lg border ${colorStyles.border} ${colorStyles.tint} px-5 py-8 shadow-sm`}
+          className={cardClasses(
+            cn(colorStyles.border, colorStyles.tint, "px-5 py-8"),
+          )}
         >
           <LargeJar dropCue={dropCue} jar={jar} />
         </aside>
@@ -453,14 +400,14 @@ export default function JarDetailPage() {
             {jar.name}
           </h1>
           {isCompleted ? (
-            <p className="mt-4 inline-flex rounded-full border border-mint/70 bg-mint/20 px-3 py-1 text-sm font-semibold text-ink">
+            <Badge tone="success" className="mt-4 px-3 text-sm">
               ✓ Complete
-            </p>
+            </Badge>
           ) : null}
           {shouldShowStreakBadge ? (
-            <p className="mt-4 inline-flex rounded-full border border-butter/70 bg-butter/20 px-3 py-1 text-sm font-semibold text-ink">
+            <Badge tone="streak" className="mt-4 px-3 text-sm">
               {streakCount} days in a row 🔥
-            </p>
+            </Badge>
           ) : null}
           <p className="mt-5 text-xl font-semibold text-ink">
             {jar.marbles.length} / {jar.target} marbles
@@ -469,39 +416,38 @@ export default function JarDetailPage() {
             {fillPercent}% full
           </p>
           {isCompleted ? (
-            <div className="mt-8 rounded-lg border border-line bg-white/75 p-5 shadow-sm">
+            <Card className="mt-8 bg-white/75 p-5">
               <p className="font-heading text-2xl font-semibold text-ink">
                 Complete
               </p>
               <p className="mt-2 max-w-xl text-sm leading-6 text-soft-ink">
                 This jar is finished and saved with its full stack of marbles.
               </p>
-            </div>
+            </Card>
           ) : isFull ? (
-            <div className="mt-8 rounded-lg border border-line bg-white/75 p-5 shadow-sm">
+            <Card className="mt-8 bg-white/75 p-5">
               <p className="font-heading text-2xl font-semibold text-ink">
                 Jar full
               </p>
               <p className="mt-2 max-w-xl text-sm leading-6 text-soft-ink">
                 Choose where this completed jar should live.
               </p>
-              <button
-                className="mt-5 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream"
+              <Button
+                className="mt-5"
                 onClick={() => setIsCelebrating(true)}
-                type="button"
               >
                 Finish this jar
-              </button>
-            </div>
+              </Button>
+            </Card>
           ) : (
-            <button
-              className="mt-8 w-full rounded-lg bg-ink px-5 py-4 text-base font-semibold text-cream shadow-sm transition hover:bg-soft-ink focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream disabled:cursor-not-allowed disabled:bg-soft-ink/45 sm:w-auto"
+            <Button
+              className="mt-8 w-full sm:w-auto"
               disabled={isDoneToday}
               onClick={handleAddToday}
-              type="button"
+              size="lg"
             >
               {isDoneToday ? "Done for today ✓" : "Add today's marble"}
-            </button>
+            </Button>
           )}
         </div>
       </div>
