@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 
 import { JARS_STORAGE_KEY } from "../../lib/storage";
 import Home from "../page";
@@ -9,6 +9,12 @@ function getDateKey(offsetDays: number) {
   date.setUTCDate(date.getUTCDate() + offsetDays);
 
   return date.toISOString().slice(0, 10);
+}
+
+function getOverviewStat(label: string) {
+  return within(
+    screen.getByRole("article", { name: `${label} overview stat` }),
+  );
 }
 
 describe("Home", () => {
@@ -27,6 +33,9 @@ describe("Home", () => {
     expect(
       screen.getByRole("link", { name: "Create your first jar" }),
     ).toHaveAttribute("href", "/jars/new");
+    expect(
+      screen.getByRole("img", { name: "Mint jar preview" }),
+    ).toBeInTheDocument();
   });
 
   it("renders stored jars as cards", async () => {
@@ -70,6 +79,14 @@ describe("Home", () => {
     expect(
       await screen.findByRole("heading", { name: "Your jars" }),
     ).toBeInTheDocument();
+    expect(getOverviewStat("Marbles collected").getByText("27"))
+      .toBeInTheDocument();
+    expect(getOverviewStat("Active jars").getByText("3"))
+      .toBeInTheDocument();
+    expect(getOverviewStat("Longest streak").getByText("3"))
+      .toBeInTheDocument();
+    expect(getOverviewStat("Completed").getByText("0"))
+      .toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /^Open / })).toHaveLength(3);
     expect(screen.getByRole("link", { name: "Open Daily reading" }))
       .toHaveAttribute("href", "/jar?id=jar-1");
@@ -78,10 +95,10 @@ describe("Home", () => {
       screen.getByRole("img", { name: "Daily reading jar is 40% full" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("3 day streak")).toHaveTextContent("🔥3");
-    expect(screen.getByRole("link", { name: "+ New jar" })).toHaveAttribute(
-      "href",
-      "/jars/new",
-    );
+    const newJarLink = screen.getByRole("link", { name: "+ New jar" });
+
+    expect(newJarLink).toHaveAttribute("href", "/jars/new");
+    expect(newJarLink).not.toHaveClass("fixed");
   });
 
   it("renders kept jars with a complete ribbon and poured jars on the trophy shelf", async () => {
@@ -118,6 +135,14 @@ describe("Home", () => {
     expect(
       await screen.findByRole("heading", { name: "Your jars" }),
     ).toBeInTheDocument();
+    expect(getOverviewStat("Marbles collected").getByText("5"))
+      .toBeInTheDocument();
+    expect(getOverviewStat("Active jars").getByText("1"))
+      .toBeInTheDocument();
+    expect(getOverviewStat("Longest streak").getByText("0"))
+      .toBeInTheDocument();
+    expect(getOverviewStat("Completed").getByText("1"))
+      .toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Trophy Shelf" }),
     ).toBeInTheDocument();
