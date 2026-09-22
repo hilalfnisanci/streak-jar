@@ -64,5 +64,20 @@ feature-qa (plan, plan-review, implement, code-review, qa, merge). No prerequisi
 - Read the complete source issue in `.orchestra/context/issue.md` and the stage briefing.
 - Streak Jar inspected at `362775ae019801b5deeb9406a8fc5ff4ebb14e86`; GitHub main matched this SHA. No existing footer is present in the current main-page or layout implementation. The owner must resolve that premise during child planning; this decomposition does not claim the acceptance criterion is already met.
 - Compliment Mirror inspected read-only at `8477ac09058a9d675ba89e2e6820727cd9a0820e`. Its main branch changed during inspection, so final footer/test findings were rechecked against that pinned SHA. Its existing strict footer assertion must be deliberately adapted, preserving prior coverage.
-- Decomposition proposal submitted successfully through the Orchestra tool: `04a0084c-f44a-4026-bc56-7bf51df5313c`, status `draft`. This is not reviewer approval or child-issue materialization.
+- Original decomposition proposal: `04a0084c-f44a-4026-bc56-7bf51df5313c`. Its payload omitted both task keys and failed verification; it is superseded by the corrected proposal below and must not be used for approval or child-issue materialization.
 - No application code changed and no app test/build commands ran in this decompose stage. Implementation, focused checks, full-suite verification, and visual QA remain child-task responsibilities.
+
+## Repair round 1: structured submission
+
+The authoritative replacement proposal is `b2e1f774-e051-481b-97c7-66ee12e8b579` (`artifact_ref`), accepted by `propose_decomposition` with status `draft`. Its reasoning explicitly supersedes proposal `04a0084c-f44a-4026-bc56-7bf51df5313c` in its entirety. The exposed tool accepts `parent_issue`, `reasoning`, and `subtasks`; it exposes no in-place update parameter. This replacement is the only proposal intended for further review or materialization, not an alternative plan.
+
+The full payload was echoed before submission. Both task titles and bodies were copied verbatim from the task sections above; repository investigation was not repeated. Each submitted task object explicitly contains these fields:
+
+| task_key | title | target_repository | workflow | depends_on |
+| --- | --- | --- | --- | --- |
+| streak-jar-footer | Add the Made with Orchestra footer note to Streak Jar | omitted (parent repository default) | feature-qa | [] |
+| compliment-mirror-footer | Add the Made with Orchestra footer note to Compliment Mirror | compliment-mirror | feature-qa | [] |
+
+The reasoning maps the note placement, focused regression test, and green existing suite requirements to each corresponding task key; it also maps the main-based branch requirement to `compliment-mirror-footer`. Both tasks retain the tiny, independent, no-shared-code requirement. With empty dependency lists there are no dependency references or cycles. The Streak Jar placement clarification and Compliment Mirror strict footer assertion caveat remain unchanged in the submitted bodies.
+
+Tool acceptance is not a claim of reviewer approval or a `decomposition_plan_valid` pass; Orchestra performs that verification server-side. This repair changes only planning evidence, so local checks are limited to whitespace and outcome JSON syntax; no application tests or builds are applicable.
