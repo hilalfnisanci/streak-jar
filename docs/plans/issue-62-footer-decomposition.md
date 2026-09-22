@@ -81,3 +81,11 @@ The full payload was echoed before submission. Both task titles and bodies were 
 The reasoning maps the note placement, focused regression test, and green existing suite requirements to each corresponding task key; it also maps the main-based branch requirement to `compliment-mirror-footer`. Both tasks retain the tiny, independent, no-shared-code requirement. With empty dependency lists there are no dependency references or cycles. The Streak Jar placement clarification and Compliment Mirror strict footer assertion caveat remain unchanged in the submitted bodies.
 
 Tool acceptance is not a claim of reviewer approval or a `decomposition_plan_valid` pass; Orchestra performs that verification server-side. This repair changes only planning evidence, so local checks are limited to whitespace and outcome JSON syntax; no application tests or builds are applicable.
+
+## Repair round 2: outcome-file delivery
+
+The run-local `.orchestra/outcome.json` now contains `verdict: "complete"` and a top-level `decomposition_plan` object. Its `tasks` list contains exactly the two tasks above, with titles and bodies transcribed unchanged, explicit stable `task_key` values, `workflow: "feature-qa"`, and `depends_on: []`. Only `compliment-mirror-footer` sets `target_repository: "compliment-mirror"`. The plan's `acceptance_coverage` maps every parent requirement to its owning task key or keys.
+
+The outcome summary records that replacement draft `b2e1f774-e051-481b-97c7-66ee12e8b579` supersedes draft `04a0084c-f44a-4026-bc56-7bf51df5313c` in full; the superseded draft must never be materialized. No new proposal or child issue was created. The missing-footer clarification and strict footer-test assertion caveat remain in their respective task bodies.
+
+The outcome file is a run-local artifact excluded from Git; this documentation records its delivery without changing application code. Local verification is limited to JSON syntax and planning-document whitespace. Server-side `decomposition_plan_valid` verification remains authoritative; successful JSON parsing alone does not establish a verifier pass.
