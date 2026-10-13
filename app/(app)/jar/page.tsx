@@ -3,19 +3,19 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { CelebrationModal } from "../components/celebration-modal";
-import { getJarFillPercent, Jar as JarVisual } from "../components/jar";
-import { Badge, Button, buttonClasses, Card, cardClasses } from "../components/ui";
-import { cn } from "../../lib/cn";
-import { getJarColor } from "../../lib/jar-colors";
+import { CelebrationModal } from "../../components/celebration-modal";
+import { getJarFillPercent, Jar as JarVisual } from "../../components/jar";
+import { Badge, Button, buttonClasses, Card, cardClasses } from "../../components/ui";
+import { cn } from "../../../lib/cn";
+import { getJarColor } from "../../../lib/jar-colors";
 import {
   findJarById,
   type Jar,
   type MarbleEntry,
   loadJarStorage,
   saveJarStorage,
-} from "../../lib/storage";
-import { computeStreak } from "../../lib/streak";
+} from "../../../lib/storage";
+import { computeStreak } from "../../../lib/streak";
 
 const CELEBRATION_DELAY_MS = 650;
 
@@ -68,7 +68,7 @@ function NotFoundState() {
       </p>
       <Link
         className={cn("mt-8", buttonClasses())}
-        href="/"
+        href="/jars"
       >
         Back to jars
       </Link>
@@ -254,7 +254,7 @@ export default function JarDetailPage() {
     <section className="mx-auto min-h-[calc(100vh-88px)] w-full max-w-6xl px-5 pb-16 pt-6">
       <Link
         className={buttonClasses({ variant: "secondary", size: "sm" })}
-        href="/"
+        href="/jars"
       >
         Back
       </Link>

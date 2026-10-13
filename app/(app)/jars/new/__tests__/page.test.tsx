@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 
-import { JARS_STORAGE_KEY } from "../../../../lib/storage";
+import { JARS_STORAGE_KEY } from "../../../../../lib/storage";
 import NewJarPage from "../page";
 
 const push = vi.fn();
@@ -56,7 +56,7 @@ describe("NewJarPage", () => {
       ],
       completed: [],
     });
-    expect(push).toHaveBeenCalledWith("/");
+    expect(push).toHaveBeenCalledWith("/jars");
   });
 
   it("shows a validation message when the name is empty", () => {
@@ -92,7 +92,7 @@ describe("NewJarPage", () => {
 
     expect(screen.getByRole("link", { name: "Cancel" })).toHaveAttribute(
       "href",
-      "/",
+      "/jars",
     );
     expect(screen.getByLabelText("Coral jar preview")).toBeInTheDocument();
 

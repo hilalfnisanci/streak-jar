@@ -1,4 +1,4 @@
-function JarGlyph() {
+export function JarGlyph() {
   return (
     <svg
       aria-hidden="true"
@@ -26,8 +26,8 @@ export function Header() {
     <header className="w-full px-5 py-5 sm:px-8">
       <a
         className="inline-flex items-center gap-3 text-ink"
-        href="/"
-        aria-label="Streak Jar home"
+        href="/jars"
+        aria-label="Open Streak Jar app"
       >
         <JarGlyph />
         <span className="font-heading text-2xl font-semibold">Streak Jar</span>

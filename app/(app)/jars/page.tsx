@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Badge, buttonClasses, cardClasses } from "./components/ui";
-import { Jar as JarVisual } from "./components/jar";
-import { cn } from "../lib/cn";
+import { Badge, buttonClasses, cardClasses } from "../../components/ui";
+import { Jar as JarVisual } from "../../components/jar";
+import { cn } from "../../../lib/cn";
 import {
   getJarColor,
   jarColorSolids,
-} from "../lib/jar-colors";
-import { type Jar, loadCompletedJars, loadJars } from "../lib/storage";
-import { computeStreak } from "../lib/streak";
+} from "../../../lib/jar-colors";
+import { type Jar, loadCompletedJars, loadJars } from "../../../lib/storage";
+import { computeStreak } from "../../../lib/streak";
 
 function EmptyState() {
   return (

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
-import { JARS_STORAGE_KEY } from "../../lib/storage";
+import { JARS_STORAGE_KEY } from "../../../../lib/storage";
 import Home from "../page";
 
 function getDateKey(offsetDays: number) {

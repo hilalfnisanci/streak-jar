@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import type { ReactNode } from "react";
 
-import { Header } from "./components/header";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,8 +31,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html className={`${inter.variable} ${fraunces.variable}`} lang="en">
       <body className="min-h-screen bg-cream font-sans text-ink antialiased">
-        <Header />
-        <main>{children}</main>
+        {children}
       </body>
     </html>
   );
