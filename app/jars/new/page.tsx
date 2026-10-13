@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useRef, useState } from "react";
 
 import {
   Button,
@@ -27,6 +27,8 @@ export default function NewJarPage() {
   const [color, setColor] = useState(jarColorList[0].key);
   const [nameError, setNameError] = useState("");
   const [targetError, setTargetError] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const targetInputRef = useRef<HTMLInputElement>(null);
 
   const selectedColor = useMemo(
     () =>
@@ -34,25 +36,36 @@ export default function NewJarPage() {
       jarColorList[0],
     [color],
   );
+  const previewTitle = name.trim() || "Your new jar";
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const trimmedName = name.trim();
+    const targetValue = Number(target);
+    const nextNameError = trimmedName ? "" : "Enter a name for your jar.";
+    let nextTargetError = "";
 
-    if (!trimmedName) {
-      setNameError("Please name your jar");
+    if (
+      !target.trim() ||
+      !Number.isFinite(targetValue) ||
+      !Number.isInteger(targetValue)
+    ) {
+      nextTargetError = "Enter how many marbles fill the jar.";
+    } else if (targetValue < 5 || targetValue > 365) {
+      nextTargetError = "Pick a number between 5 and 365 marbles.";
+    }
+
+    setNameError(nextNameError);
+    setTargetError(nextTargetError);
+
+    if (nextNameError) {
+      nameInputRef.current?.focus();
       return;
     }
 
-    const targetValue = Number(target);
-
-    if (
-      !Number.isInteger(targetValue) ||
-      targetValue < 5 ||
-      targetValue > 365
-    ) {
-      setTargetError("Target must be between 5 and 365");
+    if (nextTargetError) {
+      targetInputRef.current?.focus();
       return;
     }
 
@@ -76,9 +89,13 @@ export default function NewJarPage() {
           Create a jar
         </h1>
         <form className="mt-8 space-y-7" noValidate onSubmit={handleSubmit}>
-          <Field error={nameError} htmlFor="jar-name" label="Name">
+          <Field
+            error={nameError}
+            hint="The habit you want to track."
+            htmlFor="jar-name"
+            label="Jar name"
+          >
             <Input
-              aria-describedby={nameError ? "jar-name-error" : undefined}
               aria-invalid={nameError ? "true" : "false"}
               className="w-full"
               id="jar-name"
@@ -90,15 +107,20 @@ export default function NewJarPage() {
                 }
               }}
               placeholder="Daily reading"
+              ref={nameInputRef}
               required
               type="text"
               value={name}
             />
           </Field>
 
-          <Field error={targetError} htmlFor="jar-target" label="Target">
+          <Field
+            error={targetError}
+            hint="One marble per day — 5 to 365."
+            htmlFor="jar-target"
+            label="Marbles to fill the jar"
+          >
             <Input
-              aria-describedby={targetError ? "jar-target-error" : undefined}
               aria-invalid={targetError ? "true" : "false"}
               className="w-36"
               id="jar-target"
@@ -110,19 +132,21 @@ export default function NewJarPage() {
                   setTargetError("");
                 }
               }}
+              ref={targetInputRef}
+              step={1}
               type="number"
               value={target}
             />
           </Field>
 
           <fieldset>
-            <legend className="text-sm font-semibold text-ink">Color</legend>
+            <legend className="text-sm font-semibold text-ink">Jar color</legend>
             <div className="mt-3 flex flex-wrap gap-3">
               {jarColorList.map((marbleColor) => (
                 <label
                   className="group cursor-pointer rounded-full"
                   key={marbleColor.key}
-                  title={marbleColor.label}
+                  title={`${marbleColor.label} jar`}
                 >
                   <input
                     checked={color === marbleColor.key}
@@ -136,22 +160,15 @@ export default function NewJarPage() {
                     className={`block h-11 w-11 rounded-full border border-white/80 shadow-sm ring-offset-2 ring-offset-cream transition peer-checked:ring-2 peer-checked:ring-ink peer-focus-visible:ring-2 peer-focus-visible:ring-ink ${marbleColor.solid}`}
                     aria-hidden="true"
                   />
-                  <span className="sr-only">{marbleColor.label}</span>
+                  <span className="sr-only">{marbleColor.label} jar</span>
                 </label>
               ))}
             </div>
           </fieldset>
 
           <div className="flex flex-wrap gap-3 pt-2">
-            <Button
-              type="submit"
-            >
-              Create jar
-            </Button>
-            <Link
-              className={buttonClasses({ variant: "secondary" })}
-              href="/"
-            >
+            <Button type="submit">Create jar</Button>
+            <Link className={buttonClasses({ variant: "secondary" })} href="/">
               Cancel
             </Link>
           </div>
@@ -167,8 +184,11 @@ export default function NewJarPage() {
           ),
         )}
       >
+        <p className="mb-5 text-lg font-semibold text-ink">{previewTitle}</p>
         <JarVisual color={selectedColor.key} variant="preview" />
-        <p className="mt-5 text-sm font-medium text-soft-ink">Empty jar</p>
+        <p className="mt-5 text-sm font-medium text-soft-ink">
+          Preview · empty jar
+        </p>
       </aside>
     </section>
   );
