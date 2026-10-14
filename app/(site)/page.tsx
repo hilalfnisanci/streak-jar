@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { JarGlyph } from "../components/header";
 import { Jar as JarVisual } from "../components/jar";
-import { Badge, buttonClasses, Card, cardClasses } from "../components/ui";
+import { buttonClasses, Card, cardClasses } from "../components/ui";
 import { cn } from "../../lib/cn";
 import { getJarColor } from "../../lib/jar-colors";
 import { getDemoBookingUrl, type DemoBookingSlot } from "../../lib/site";
@@ -109,7 +109,6 @@ function DemoLink({
 }) {
   return (
     <a
-      aria-label="Book a demo (opens in a new tab)"
       className={buttonClasses({
         variant,
         size,
@@ -119,7 +118,7 @@ function DemoLink({
       rel="noopener noreferrer"
       target="_blank"
     >
-      Book a demo
+      Book a demo{" "}
       <ExternalLinkIcon />
     </a>
   );
@@ -177,8 +176,10 @@ function HeroSection() {
     <section className="px-5 py-16 sm:px-8 lg:py-22">
       <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
         <div>
-          <Badge>For teams</Badge>
-          <h1 className="mt-4 max-w-2xl font-heading text-5xl font-semibold leading-[1.06] text-ink sm:text-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-soft-ink">
+            For teams
+          </p>
+          <h1 className="mt-3 max-w-2xl font-heading text-4xl font-semibold leading-[1.06] text-ink sm:text-6xl">
             Progress your team can see filling.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-8 text-soft-ink">
@@ -283,7 +284,7 @@ function TeamValuesSection() {
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "block h-7 w-7 rounded-full shadow-[inset_-3px_-4px_5px_rgb(49_38_31_/_24%),inset_2px_2px_3px_rgb(255_255_255_/_38%)]",
+                    "jar__marble h-7 w-7",
                     color.solid,
                   )}
                 />

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function JarGlyph() {
   return (
     <svg
@@ -24,14 +26,14 @@ export function JarGlyph() {
 export function Header() {
   return (
     <header className="w-full px-5 py-5 sm:px-8">
-      <a
+      <Link
         className="inline-flex items-center gap-3 text-ink"
         href="/jars"
         aria-label="Open Streak Jar app"
       >
         <JarGlyph />
         <span className="font-heading text-2xl font-semibold">Streak Jar</span>
-      </a>
+      </Link>
     </header>
   );
 }
