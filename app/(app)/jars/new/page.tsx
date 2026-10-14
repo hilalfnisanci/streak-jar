@@ -10,11 +10,11 @@ import {
   cardClasses,
   Field,
   Input,
-} from "../../components/ui";
-import { Jar as JarVisual } from "../../components/jar";
-import { cn } from "../../../lib/cn";
-import { jarColorList } from "../../../lib/jar-colors";
-import { type Jar, loadJars, saveJars } from "../../../lib/storage";
+} from "../../../components/ui";
+import { Jar as JarVisual } from "../../../components/jar";
+import { cn } from "../../../../lib/cn";
+import { jarColorList } from "../../../../lib/jar-colors";
+import { type Jar, loadJars, saveJars } from "../../../../lib/storage";
 
 function createJarId() {
   return globalThis.crypto?.randomUUID?.() ?? `jar-${Date.now()}`;
@@ -66,7 +66,7 @@ export default function NewJarPage() {
     };
 
     saveJars([...loadJars(), newJar]);
-    router.push("/");
+    router.push("/jars");
   };
 
   return (
@@ -150,7 +150,7 @@ export default function NewJarPage() {
             </Button>
             <Link
               className={buttonClasses({ variant: "secondary" })}
-              href="/"
+              href="/jars"
             >
               Cancel
             </Link>

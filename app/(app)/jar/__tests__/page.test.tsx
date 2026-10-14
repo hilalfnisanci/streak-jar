@@ -4,8 +4,8 @@ import {
   type Jar,
   type JarStorage,
   JARS_STORAGE_KEY,
-} from "../../../lib/storage";
-import * as streak from "../../../lib/streak";
+} from "../../../../lib/storage";
+import * as streak from "../../../../lib/streak";
 import JarDetailPage from "../page";
 
 function seedStorage(jars: Jar[], completed: Jar[] = []) {
@@ -220,7 +220,7 @@ describe("JarDetailPage", () => {
     expect(screen.getByText("404")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to jars" })).toHaveAttribute(
       "href",
-      "/",
+      "/jars",
     );
   });
 

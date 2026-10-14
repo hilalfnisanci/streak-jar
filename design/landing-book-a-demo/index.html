@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Streak Jar — Book a demo (landing page prototype)</title>
+<!--
+  Design decisions
+  ----------------
+  1. Tokens, jar CSS and type stacks are copied verbatim from app/globals.css. Colour
+     is only ever referenced through var(...) — no new hex values (spec AC5).
+  2. Fraunces / Inter could not be embedded as data-URI @font-face: this environment has
+     no network access and no local copies. The page declares the project's exact family
+     names with the project's own fallback stacks from globals.css, so the real build
+     (next/font) renders correctly. Headings will fall back to a serif here.
+  3. The page is static by nature (output: "export"). The only interactive affordances are
+     in-page: the "See how it works" anchor and a scheduler hand-off sheet that stands in
+     for the external Cal.com link — a prototype cannot navigate outside its own page, so
+     the sheet shows the exact resolved URL incl. utm_source / utm_content per slot.
+     In production these are plain <a target="_blank" rel="noopener noreferrer">; the only
+     page JS is this prototype's.
+  4. The proof band ships empty (D8). It is shown here as a marked reservation so the
+     engineer knows it renders nothing at build time — no invented logos or quotes.
+  5. Hero jar = Jar variant="large" at 18/24 marbles. Shelf = Jar variant="mini" full.
+-->
+<style>
+  /* ---- tokens: copied from app/globals.css ---- */
+  :root {
+    --cream: #faf7f2;
+    --glass: #dcefea;
+    --coral: #f47c6b;
+    --mint: #7bcfb6;
+    --lavender: #a99be8;
+    --butter: #f6d86b;
+    --sky: #78b9e8;
+    --peach: #f3ad7b;
+    --lilac: #d59bdc;
+    --sage: #9fbe8f;
+    --ink: #31261f;
+    --soft-ink: #7c6a5f;
+    --line: #eadfd2;
+
+    --font-sans: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-heading: "Fraunces", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+
+    --radius-control: 0.5rem;
+    --radius-card: 0.75rem;
+    --radius-panel: 1rem;
+    --radius-pill: 9999px;
+    --shadow-warm-sm: 0 1px 2px color-mix(in srgb, var(--ink) 8%, transparent);
+    --shadow-warm-md: 0 8px 24px color-mix(in srgb, var(--ink) 6%, transparent);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { min-height: 100%; scroll-behavior: smooth; }
+  body {
+    min-height: 100vh; margin: 0;
+    background: var(--cream); color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--font-heading); margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+  p { margin: 0; }
+  a { color: inherit; }
+
+  :where(a, button):focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--cream), 0 0 0 4px var(--ink);
+  }
+
+  .wrap { width: 100%; max-width: 1120px; margin-inline: auto; padding-inline: 1.25rem; }
+  @media (min-width: 640px) { .wrap { padding-inline: 2rem; } }
+
+  /* ---- buttons: app/components/ui/button.tsx ---- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    border: 0; border-radius: var(--radius-control);
+    font-family: var(--font-sans); font-weight: 600;
+    box-shadow: var(--shadow-warm-sm);
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+    cursor: pointer; text-decoration: none;
+  }
+  .btn--primary { background: var(--ink); color: var(--cream); }
+  .btn--primary:hover { background: var(--soft-ink); }
+  .btn--secondary { border: 1px solid var(--line); background: #fff; color: var(--ink); }
+  .btn--secondary:hover { border-color: var(--soft-ink); }
+  .btn--ghost { background: transparent; color: var(--ink); box-shadow: none; }
+  .btn--ghost:hover { background: color-mix(in srgb, var(--line) 40%, transparent); }
+  .btn--sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+  .btn--md { padding: 0.75rem 1.25rem; font-size: 0.875rem; }
+  .btn--lg { padding: 1rem 1.25rem; font-size: 1rem; }
+
+  .ext { font-size: 0.9em; opacity: 0.75; }
+  .vh {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ---- cards / badges ---- */
+  .card {
+    border: 1px solid var(--line); border-radius: var(--radius-card);
+    background: #fff; box-shadow: var(--shadow-warm-sm);
+    padding: 1.5rem;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    border: 1px solid var(--line); border-radius: var(--radius-pill);
+    background: var(--cream); color: var(--ink);
+    padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 600;
+    box-shadow: var(--shadow-warm-sm);
+  }
+  .badge--streak { border-color: color-mix(in srgb, var(--butter) 70%, transparent); background: color-mix(in srgb, var(--butter) 20%, transparent); }
+  .badge--success { border-color: color-mix(in srgb, var(--mint) 70%, transparent); background: color-mix(in srgb, var(--mint) 20%, transparent); }
+
+  /* ---- site nav ---- */
+  .nav {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--cream) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid transparent;
+    transition: border-color 200ms ease;
+  }
+  .nav--scrolled { border-bottom-color: var(--line); }
+  .nav__inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: 1rem; }
+  .brand { display: inline-flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+  .brand span { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 600; }
+  .brand svg { width: 2rem; height: 2rem; }
+
+  /* ---- bands ---- */
+  section { padding-block: 4rem; }
+  @media (min-width: 900px) { section { padding-block: 5.5rem; } }
+  .band--tinted { background: color-mix(in srgb, var(--glass) 34%, var(--cream)); border-block: 1px solid var(--line); }
+
+  .eyebrow {
+    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--soft-ink);
+  }
+  .lede { color: var(--soft-ink); font-size: 1.0625rem; line-height: 1.65; }
+  @media (min-width: 900px) { .lede { font-size: 1.125rem; } }
+
+  .hero__grid { display: grid; gap: 3rem; align-items: center; }
+  @media (min-width: 900px) { .hero__grid { grid-template-columns: 1.05fr 0.95fr; gap: 4rem; } }
+  .hero h1 {
+    font-size: clamp(2.25rem, 5.4vw, 3.5rem); line-height: 1.07;
+    margin-block: 1rem 1.25rem; max-width: 20ch;
+  }
+  .hero .lede { max-width: 48ch; }
+  .hero__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; margin-top: 2rem; }
+  .hero__note { margin-top: 1rem; font-size: 0.8125rem; color: var(--soft-ink); }
+  .hero__art { display: grid; place-items: center; }
+  .hero__art-frame { position: relative; width: 100%; display: grid; place-items: center; }
+  .hero__art-glow {
+    position: absolute; inset: 8% 4% 10%; border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--glass) 70%, transparent), transparent);
+    filter: blur(6px);
+  }
+  .hero__caption {
+    margin-top: 1rem; text-align: center; font-size: 0.8125rem; color: var(--soft-ink);
+  }
+
+  .section-head { max-width: 58ch; }
+  .section-head h2 { font-size: clamp(1.75rem, 3.2vw, 2.25rem); line-height: 1.15; margin-block: 0.75rem 1rem; }
+
+  .steps { display: grid; gap: 1.5rem; margin-top: 3rem; counter-reset: step; }
+  @media (min-width: 760px) { .steps { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; } }
+  .step { position: relative; }
+  .step__num {
+    display: grid; place-items: center; width: 2.5rem; height: 2.5rem;
+    border-radius: var(--radius-pill); border: 1px solid var(--line);
+    background: var(--cream); font-family: var(--font-heading); font-size: 1.125rem; font-weight: 600;
+  }
+  .step h3 { font-size: 1.1875rem; margin-block: 1.125rem 0.5rem; }
+  .step p { color: var(--soft-ink); line-height: 1.6; font-size: 0.9375rem; }
+
+  .values { display: grid; gap: 1.25rem; margin-top: 3rem; }
+  @media (min-width: 760px) { .values { grid-template-columns: repeat(3, 1fr); } }
+  .value h3 { font-size: 1.1875rem; margin-block: 1rem 0.5rem; }
+  .value p { color: var(--soft-ink); line-height: 1.6; font-size: 0.9375rem; }
+  .value__dot { width: 1.75rem; height: 1.75rem; border-radius: var(--radius-pill); box-shadow: inset -3px -4px 5px rgb(49 38 31 / 24%), inset 2px 2px 3px rgb(255 255 255 / 38%); }
+
+  .shelf { margin-top: 2.75rem; }
+  .shelf__row {
+    display: flex; gap: 1.25rem; justify-content: flex-start; align-items: flex-end;
+    overflow-x: auto; padding-bottom: 1.25rem; scrollbar-width: thin;
+  }
+  @media (min-width: 900px) { .shelf__row { justify-content: center; overflow: visible; } }
+  .shelf__item { flex: 0 0 auto; text-align: center; }
+  .shelf__label { margin-top: 0.75rem; font-size: 0.8125rem; color: var(--soft-ink); }
+  .shelf__plank { height: 10px; border-radius: var(--radius-pill); background: linear-gradient(180deg, #fff, color-mix(in srgb, var(--line) 90%, transparent)); border: 1px solid var(--line); }
+
+  .faq { display: grid; gap: 1rem; margin-top: 2.5rem; }
+  @media (min-width: 900px) { .faq { grid-template-columns: repeat(3, 1fr); } }
+  .faq h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+  .faq p { color: var(--soft-ink); font-size: 0.9375rem; line-height: 1.6; }
+
+  .closing { text-align: center; }
+  .closing h2 { font-size: clamp(1.875rem, 4vw, 2.5rem); margin-block: 1rem 1.25rem; max-width: 24ch; margin-inline: auto; }
+  .closing .lede { max-width: 46ch; margin-inline: auto; }
+  .closing__cta { margin-top: 2rem; }
+  .closing__micro { margin-top: 0.875rem; font-size: 0.8125rem; color: var(--soft-ink); }
+
+  footer { border-top: 1px solid var(--line); padding-block: 2rem; }
+  .footer__inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+  .footer__mark { font-family: var(--font-heading); font-size: 1.125rem; font-weight: 600; }
+  .footer__link { font-size: 0.875rem; color: var(--soft-ink); text-decoration: none; border-bottom: 1px solid var(--line); padding-bottom: 2px; }
+  .footer__link:hover { color: var(--ink); border-bottom-color: var(--soft-ink); }
+
+  /* ---- prototype-only annotation chrome ---- */
+  .proto-bar {
+    position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+    z-index: 40; display: flex; gap: 0.5rem; align-items: center;
+    padding: 0.5rem; border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--ink) 92%, transparent); color: var(--cream);
+    box-shadow: var(--shadow-warm-md); font-size: 0.75rem;
+  }
+  .proto-bar button {
+    border: 0; border-radius: var(--radius-pill); cursor: pointer;
+    padding: 0.375rem 0.75rem; font: inherit; font-weight: 600;
+    background: transparent; color: var(--cream);
+  }
+  .proto-bar button[aria-pressed="true"] { background: var(--cream); color: var(--ink); }
+  .proto-bar span { padding-inline: 0.5rem; opacity: 0.7; }
+
+  .anno { display: none; }
+  body.show-anno .anno { display: block; }
+  .anno {
+    margin-top: 1rem; border-left: 3px solid var(--lavender);
+    padding: 0.625rem 0.875rem; border-radius: 0 var(--radius-control) var(--radius-control) 0;
+    background: color-mix(in srgb, var(--lavender) 12%, transparent);
+    font-size: 0.8125rem; line-height: 1.5; color: var(--ink);
+  }
+  .anno strong { font-weight: 600; }
+
+  /* proof band reservation (prototype view only) */
+  .proof__slot {
+    border: 1px dashed color-mix(in srgb, var(--soft-ink) 45%, transparent);
+    border-radius: var(--radius-panel); padding: 2rem; text-align: center;
+    color: var(--soft-ink); background: color-mix(in srgb, #fff 55%, transparent);
+  }
+  body:not(.show-anno) #proof { display: none; }
+
+  /* ---- scheduler hand-off sheet ---- */
+  .sheet-backdrop {
+    position: fixed; inset: 0; z-index: 50; display: none;
+    align-items: center; justify-content: center; padding: 1.25rem;
+    background: color-mix(in srgb, var(--ink) 38%, transparent);
+  }
+  .sheet-backdrop[data-open="true"] { display: flex; }
+  .sheet {
+    width: 100%; max-width: 460px; border-radius: var(--radius-panel);
+    background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow-warm-md);
+    padding: 1.75rem;
+  }
+  .sheet h2 { font-size: 1.375rem; margin-bottom: 0.625rem; }
+  .sheet p { color: var(--soft-ink); font-size: 0.9375rem; line-height: 1.6; }
+  .sheet__url {
+    margin-top: 1.25rem; padding: 0.75rem 0.875rem; border-radius: var(--radius-control);
+    border: 1px solid var(--line); background: var(--cream);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem;
+    word-break: break-all; color: var(--ink);
+  }
+  .sheet__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
+  .sheet__state { display: none; }
+  .sheet__state[data-active="true"] { display: block; }
+  .spinner {
+    width: 1.5rem; height: 1.5rem; border-radius: var(--radius-pill);
+    border: 2px solid var(--line); border-top-color: var(--ink);
+    animation: spin 700ms linear infinite; margin-bottom: 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- jar: copied from app/globals.css ---- */
+  .jar { position: relative; }
+  .jar__neck, .jar__rim, .jar__body { border: 2px solid color-mix(in srgb, var(--ink) 68%, transparent); }
+  .jar__neck, .jar__rim {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(100deg, rgb(255 255 255 / 80%) 0%, rgb(220 239 234 / 66%) 48%, rgb(255 255 255 / 62%) 100%);
+    box-shadow: inset 2px 1px 0 rgb(255 255 255 / 80%), 0 2px 3px rgb(49 38 31 / 10%);
+  }
+  .jar__body {
+    position: absolute; bottom: 0; left: 50%; overflow: hidden; transform: translateX(-50%);
+    background: linear-gradient(105deg, rgb(255 255 255 / 72%) 0%, rgb(220 239 234 / 38%) 46%, rgb(255 255 255 / 55%) 100%);
+    box-shadow: inset 8px 0 14px rgb(255 255 255 / 50%), inset -8px 0 14px rgb(49 38 31 / 8%), inset 0 -10px 12px rgb(49 38 31 / 12%), 0 9px 15px rgb(49 38 31 / 10%);
+  }
+  .jar__fill, .jar__preview-tint { position: absolute; inset-inline: 0; bottom: 0; z-index: 0; }
+  .jar__fill { transition: height 240ms ease-out; }
+  .jar__fill::after, .jar__preview-tint::after {
+    position: absolute; inset: 0; content: "";
+    background: linear-gradient(110deg, rgb(255 255 255 / 28%), transparent 42%);
+  }
+  .jar__base {
+    position: absolute; z-index: 3; right: 12%; bottom: 4px; left: 12%; height: 10px;
+    border-radius: 50%; background: linear-gradient(180deg, rgb(255 255 255 / 46%), rgb(49 38 31 / 14%)); opacity: 0.72;
+  }
+  .jar__marbles { position: absolute; z-index: 2; display: grid; }
+  .jar__marble {
+    position: relative; display: block; border-radius: 9999px;
+    box-shadow: inset -3px -4px 5px rgb(49 38 31 / 24%), inset 2px 2px 3px rgb(255 255 255 / 38%), 0 3px 5px rgb(49 38 31 / 24%);
+  }
+  .jar__marble::after {
+    position: absolute; top: 17%; left: 22%; width: 31%; height: 23%; border-radius: 9999px;
+    content: ""; background: rgb(255 255 255 / 78%); filter: blur(0.4px);
+  }
+  .jar__reflection {
+    position: absolute; z-index: 4; top: 10%; bottom: 12%; left: 13%; width: 15%;
+    border-radius: 9999px; background: linear-gradient(180deg, rgb(255 255 255 / 72%), rgb(255 255 255 / 7%));
+    opacity: 0.8; transform: rotate(5deg);
+  }
+  .jar--mini { width: 7rem; height: 10rem; }
+  .jar--mini .jar__neck { top: 0; width: 3.5rem; height: 1.25rem; border-radius: 0.375rem 0.375rem 0.2rem 0.2rem; }
+  .jar--mini .jar__rim { top: 1rem; width: 5rem; height: 1.25rem; border-radius: 0.5rem; }
+  .jar--mini .jar__body { width: 6rem; height: 8rem; border-radius: 0.75rem 0.75rem 1.75rem 1.75rem; }
+  .jar--mini .jar__marbles { right: 0.75rem; bottom: 0.75rem; left: 0.75rem; grid-template-columns: repeat(3, 1fr); gap: 0.375rem; }
+  .jar--mini .jar__marble { width: 1rem; height: 1rem; }
+  .jar--large { width: 100%; max-width: 340px; height: 430px; margin-inline: auto; }
+  .jar--large .jar__neck { top: 0; width: 10rem; height: 2.5rem; border-width: 4px; border-radius: 0.5rem 0.5rem 0.3rem 0.3rem; }
+  .jar--large .jar__rim { top: 2.25rem; width: 14rem; height: 3rem; border-width: 4px; border-radius: 0.75rem; }
+  .jar--large .jar__body { width: 100%; height: 370px; border-width: 4px; border-radius: 2rem 2rem 4rem 4rem; }
+  .jar--large .jar__marbles { right: 2.5rem; bottom: 2rem; left: 2.5rem; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+  .jar--large .jar__marble { width: 2rem; height: 2rem; }
+  @media (min-width: 640px) {
+    .jar--large { max-width: 400px; height: 500px; }
+    .jar--large .jar__body { height: 430px; }
+    .jar--large .jar__marbles { grid-template-columns: repeat(6, 1fr); }
+  }
+
+  /* marble + fill colour helpers, mirroring lib/jar-colors.ts solid/fill pairs */
+  .m-coral { background: var(--coral); } .f-coral { background: color-mix(in srgb, var(--coral) 35%, transparent); }
+  .m-mint { background: var(--mint); } .f-mint { background: color-mix(in srgb, var(--mint) 35%, transparent); }
+  .m-lavender { background: var(--lavender); } .f-lavender { background: color-mix(in srgb, var(--lavender) 35%, transparent); }
+  .m-butter { background: var(--butter); } .f-butter { background: color-mix(in srgb, var(--butter) 45%, transparent); }
+  .m-sky { background: var(--sky); } .f-sky { background: color-mix(in srgb, var(--sky) 35%, transparent); }
+  .m-peach { background: var(--peach); } .f-peach { background: color-mix(in srgb, var(--peach) 35%, transparent); }
+  .m-lilac { background: var(--lilac); } .f-lilac { background: color-mix(in srgb, var(--lilac) 35%, transparent); }
+  .m-sage { background: var(--sage); } .f-sage { background: color-mix(in srgb, var(--sage) 35%, transparent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .jar__fill { transition: none; }
+    .spinner { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 1. NAV -->
+<header class="nav" id="siteNav">
+  <div class="wrap nav__inner">
+    <a class="brand" href="#top" aria-label="Streak Jar home">
+      <svg aria-hidden="true" fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11.5 4.5h9M12.75 7.5h6.5v3.25l3.25 3.75v9.25a3.75 3.75 0 0 1-3.75 3.75h-5.5a3.75 3.75 0 0 1-3.75-3.75V14.5l3.25-3.75V7.5Z"
+          fill="var(--glass)" stroke="var(--ink)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />
+        <circle fill="var(--coral)" cx="13" cy="22" r="2" />
+        <circle fill="var(--mint)" cx="18.5" cy="21" r="2" />
+        <circle fill="var(--butter)" cx="16" cy="17" r="2" />
+      </svg>
+      <span>Streak Jar</span>
+    </a>
+    <a class="btn btn--secondary btn--sm" href="#book" data-slot="nav">Book a demo <span class="ext" aria-hidden="true">↗</span><span class="vh"> (opens in a new tab)</span></a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- 2. HERO -->
+  <section class="hero">
+    <div class="wrap hero__grid">
+      <div>
+        <p class="eyebrow">For teams</p>
+        <h1>Progress your team can see filling.</h1>
+        <p class="lede">Streak Jar turns one shared habit into one marble a day. No dashboards to interpret, no streak anxiety — just a jar that fills as your team shows up.</p>
+        <div class="hero__ctas">
+          <a class="btn btn--primary btn--lg" href="#book" data-slot="hero">Book a demo <span class="ext" aria-hidden="true">↗</span><span class="vh"> (opens in a new tab)</span></a>
+          <a class="btn btn--ghost btn--md" href="#method">See how it works</a>
+        </div>
+        <p class="hero__note">Twenty minutes, no slides. Nothing to install.</p>
+        <div class="anno"><strong>Build note.</strong> Primary CTA is the only full-contrast element above the fold. Both CTAs are <code>&lt;a target="_blank" rel="noopener noreferrer"&gt;</code> to <code>DEMO_BOOKING_URL</code>; accessible name ends in “(opens in a new tab)”. The ↗ glyph is <code>aria-hidden</code>.</div>
+      </div>
+      <div class="hero__art">
+        <div class="hero__art-frame">
+          <div class="hero__art-glow" aria-hidden="true"></div>
+          <div class="jar jar--large" role="img" aria-label="Team stand-up jar is 75% full">
+            <div class="jar__neck" aria-hidden="true"></div>
+            <div class="jar__rim" aria-hidden="true"></div>
+            <div class="jar__body" aria-hidden="true">
+              <span class="jar__fill f-mint" style="height:75%"></span>
+              <span class="jar__base"></span>
+              <span class="jar__marbles" id="heroMarbles"></span>
+              <span class="jar__reflection"></span>
+            </div>
+          </div>
+        </div>
+        <p class="hero__caption">“Daily stand-up notes” · 18 of 24 marbles</p>
+        <div class="anno" style="max-width:34rem"><strong>Build note.</strong> <code>&lt;Jar variant="large" /&gt;</code> with real props — no screenshot. Fixed <code>height</code> on <code>.jar--large</code> means no layout shift (AC7).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. METHOD -->
+  <section class="band--tinted" id="method">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">The method</p>
+        <h2>Three steps, and then nothing to learn.</h2>
+        <p class="lede">The whole product is one promise, one tap and one jar. That is deliberate — a habit tool your team has to study is a habit tool your team abandons.</p>
+      </div>
+      <ol class="steps" style="list-style:none;padding:0;margin-top:3rem">
+        <li class="step card">
+          <div class="step__num" aria-hidden="true">1</div>
+          <h3>Choose one habit</h3>
+          <p>Pick a single thing worth doing daily. One jar, one promise — and a target you can actually finish.</p>
+        </li>
+        <li class="step card">
+          <div class="step__num" aria-hidden="true">2</div>
+          <h3>Drop a marble</h3>
+          <p>One tap when it’s done. It takes a second, and it is the only interaction there is.</p>
+        </li>
+        <li class="step card">
+          <div class="step__num" aria-hidden="true">3</div>
+          <h3>Watch it fill</h3>
+          <p>The jar fills in colour. When it’s full, the team gets its moment — and the jar keeps its place on the shelf.</p>
+        </li>
+      </ol>
+      <div class="anno"><strong>Build note.</strong> Ordered list, not three divs: the sequence is the content. <code>&lt;Card&gt;</code> from <code>app/components/ui</code>; the numeral circle is the one new primitive and stays local to this band.</div>
+    </div>
+  </section>
+
+  <!-- 4. WHY TEAMS -->
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Why teams</p>
+        <h2>Momentum you can share without ranking anyone.</h2>
+      </div>
+      <div class="values">
+        <article class="value card">
+          <div class="value__dot m-sky" aria-hidden="true"></div>
+          <h3>Shared, not surveilled</h3>
+          <p>A jar shows the team’s momentum, not an individual’s shortfall. No leaderboards, nobody ranked against anyone.</p>
+        </article>
+        <article class="value card">
+          <div class="value__dot m-lavender" aria-hidden="true"></div>
+          <h3>Calm by design</h3>
+          <p>No notifications, no guilt mechanics, no red streak counter. Momentum you can glance at and put down.</p>
+        </article>
+        <article class="value card">
+          <div class="value__dot m-butter" aria-hidden="true"></div>
+          <h3>A moment worth finishing</h3>
+          <p>A full jar earns a celebration and a place on the Trophy Shelf. Finishing is the point, not an endless streak.</p>
+        </article>
+      </div>
+      <div class="anno"><strong>Build note.</strong> Dots use the marble palette from <code>lib/jar-colors.ts</code> (<code>solid</code>) with the marble shadow, so the colour system reads as the product’s, not decoration.</div>
+    </div>
+  </section>
+
+  <!-- 5. TROPHY SHELF -->
+  <section class="band--tinted">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Trophy shelf</p>
+        <h2>Full jars stay on the shelf.</h2>
+        <p class="lede">Every finished jar keeps its colour and its count. Over a quarter the shelf becomes the quiet record of what your team actually kept — not a number that resets the first day someone is ill.</p>
+      </div>
+      <div class="shelf">
+        <div class="shelf__row" id="shelfRow"></div>
+        <div class="shelf__plank" aria-hidden="true"></div>
+      </div>
+      <div class="anno"><strong>Build note.</strong> Four <code>&lt;Jar variant="mini" /&gt;</code> at full. Horizontally scrollable below 900px rather than shrunk — the jar has a fixed size and must not be squeezed. Jar names here are placeholders the engineer should keep generic, not customer names (D8).</div>
+    </div>
+  </section>
+
+  <!-- 6. PROOF SLOT — ships empty (visible in build-notes view only) -->
+  <section id="proof">
+    <div class="wrap">
+      <div class="proof__slot">
+        <p class="badge" style="margin-bottom:1rem">Reserved — renders nothing at build time</p>
+        <p class="lede" style="max-width:52ch;margin-inline:auto">Proof band per D8. One real quote or logo row goes here when there is one. Until then the component returns <code>null</code> — not an empty box, not a placeholder, and nothing invented.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. FAQ + CLOSING CTA -->
+  <section id="book" class="closing">
+    <div class="wrap">
+      <div class="faq" style="text-align:left">
+        <div class="card">
+          <h3>How long is the demo?</h3>
+          <p>Twenty minutes. We set up a jar for a habit your team is already trying to keep, and you see the whole thing end to end.</p>
+        </div>
+        <div class="card">
+          <h3>Where does our data live?</h3>
+          <p>In your own browser today. Nothing is uploaded and there is no account to create. Shared team jars are exactly what the call is for — we’ll walk you through how we’d set that up for you.</p>
+        </div>
+        <div class="card">
+          <h3>Do we need to install anything?</h3>
+          <p>No. It runs in the browser.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:4rem">
+        <p class="eyebrow">Book a demo</p>
+        <h2>See a jar fill before you commit to anything.</h2>
+        <p class="lede">We’ll bring the jar. You bring the one habit your team keeps meaning to keep.</p>
+        <div class="closing__cta">
+          <a class="btn btn--primary btn--lg" href="#book" data-slot="closing">Book a demo <span class="ext" aria-hidden="true">↗</span><span class="vh"> (opens in a new tab)</span></a>
+        </div>
+        <p class="closing__micro">Twenty minutes, no slides.</p>
+      </div>
+      <div class="anno" style="text-align:left"><strong>Build note.</strong> FAQ sits immediately above the closing CTA so the last objection is answered next to the action. The third FAQ answer states plainly that shared jars don’t ship yet (spec assumption 2).</div>
+    </div>
+  </section>
+</main>
+
+<!-- 8. FOOTER -->
+<footer>
+  <div class="wrap footer__inner">
+    <span class="footer__mark">Streak Jar</span>
+    <a class="footer__link" href="#top" data-app-link="true">Open the app →</a>
+  </div>
+</footer>
+
+<!-- scheduler hand-off sheet: stands in for the external scheduler link -->
+<div class="sheet-backdrop" id="sheet" data-open="false" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet">
+    <div class="sheet__state" data-state="loading" data-active="true">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2 id="sheetTitle">Opening the scheduler…</h2>
+      <p>In the real page this is a plain link to the hosted scheduler, opening in a new tab. The prototype can’t leave its own page, so it shows you where the click goes.</p>
+    </div>
+    <div class="sheet__state" data-state="success">
+      <p class="badge badge--success" style="margin-bottom:1rem">External link</p>
+      <h2>cal.com — Streak Jar demo</h2>
+      <p>The visitor lands on the hosted scheduler with the slot tagged, so you can tell which band earned the booking.</p>
+      <div class="sheet__url" id="sheetUrl"></div>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary btn--md" type="button" data-sheet-error>Show unreachable state</button>
+        <button class="btn btn--primary btn--md" type="button" data-sheet-close>Back to the page</button>
+      </div>
+    </div>
+    <div class="sheet__state" data-state="error">
+      <p class="badge badge--streak" style="margin-bottom:1rem">Scheduler unreachable</p>
+      <h2>If the scheduler is down</h2>
+      <p>Nothing on the page breaks: it is a link, not an embed, so the page never shows a broken widget. The fallback is a mailto line the engineer should keep in the footer — the only recovery path a static page can offer.</p>
+      <div class="sheet__url">mailto:hello@streakjar.app?subject=Streak%20Jar%20demo</div>
+      <div class="sheet__actions">
+        <button class="btn btn--primary btn--md" type="button" data-sheet-close>Back to the page</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="proto-bar" role="group" aria-label="Prototype views">
+  <span>Prototype</span>
+  <button type="button" id="annoToggle" aria-pressed="false">Build notes</button>
+  <button type="button" id="emptyToggle" aria-pressed="false">Empty shelf</button>
+</div>
+
+<script>
+  // Hero jar: 18 of 24 marbles, mint.
+  const heroMarbles = document.getElementById("heroMarbles");
+  for (let i = 0; i < 18; i += 1) {
+    const m = document.createElement("span");
+    m.className = "jar__marble m-mint";
+    heroMarbles.appendChild(m);
+  }
+
+  // Trophy shelf: four completed mini jars.
+  const SHELF = [
+    { name: "Daily stand-up notes", color: "coral", marbles: 30 },
+    { name: "Ten minutes of reading", color: "sky", marbles: 21 },
+    { name: "Inbox to zero", color: "butter", marbles: 14 },
+    { name: "Walk at lunch", color: "sage", marbles: 30 },
+  ];
+  const shelfRow = document.getElementById("shelfRow");
+  function renderShelf(empty) {
+    shelfRow.innerHTML = "";
+    if (empty) {
+      const p = document.createElement("p");
+      p.className = "lede";
+      p.style.cssText = "max-width:40ch;padding-block:2.5rem";
+      p.textContent = "Nothing on the shelf yet — this is what a brand-new team sees. The band collapses to one line of copy rather than showing hollow jars.";
+      shelfRow.appendChild(p);
+      return;
+    }
+    SHELF.forEach((jar) => {
+      const item = document.createElement("div");
+      item.className = "shelf__item";
+      const marbles = Array.from({ length: Math.min(jar.marbles, 12) })
+        .map(() => '<span class="jar__marble m-' + jar.color + '"></span>').join("");
+      item.innerHTML =
+        '<div class="jar jar--mini" role="img" aria-label="' + jar.name + ' jar is 100% full">' +
+          '<div class="jar__neck" aria-hidden="true"></div>' +
+          '<div class="jar__rim" aria-hidden="true"></div>' +
+          '<div class="jar__body" aria-hidden="true">' +
+            '<span class="jar__fill f-' + jar.color + '" style="height:100%"></span>' +
+            '<span class="jar__base"></span>' +
+            '<span class="jar__marbles">' + marbles + '</span>' +
+            '<span class="jar__reflection"></span>' +
+          '</div>' +
+        '</div>' +
+        '<p class="shelf__label">' + jar.name + '<br>' + jar.marbles + ' / ' + jar.marbles + '</p>';
+      shelfRow.appendChild(item);
+    });
+  }
+  renderShelf(false);
+
+  // Scheduler hand-off sheet.
+  const BOOKING_BASE = "https://cal.com/streak-jar/demo";
+  const sheet = document.getElementById("sheet");
+  const sheetUrl = document.getElementById("sheetUrl");
+  let sheetTimer = null;
+
+  function setSheetState(name) {
+    sheet.querySelectorAll(".sheet__state").forEach((el) => {
+      el.setAttribute("data-active", String(el.dataset.state === name));
+    });
+  }
+  function openSheet(slot) {
+    sheetUrl.textContent = BOOKING_BASE + "?utm_source=streak-jar-landing&utm_medium=cta&utm_content=" + slot;
+    sheet.setAttribute("data-open", "true");
+    setSheetState("loading");
+    clearTimeout(sheetTimer);
+    sheetTimer = setTimeout(() => setSheetState("success"), 650);
+  }
+  function closeSheet() {
+    clearTimeout(sheetTimer);
+    sheet.setAttribute("data-open", "false");
+  }
+
+  document.querySelectorAll("[data-slot]").forEach((cta) => {
+    cta.addEventListener("click", (event) => {
+      event.preventDefault();
+      openSheet(cta.dataset.slot);
+    });
+  });
+  sheet.querySelectorAll("[data-sheet-close]").forEach((b) => b.addEventListener("click", closeSheet));
+  sheet.querySelectorAll("[data-sheet-error]").forEach((b) => b.addEventListener("click", () => setSheetState("error")));
+  sheet.addEventListener("click", (e) => { if (e.target === sheet) closeSheet(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+
+  // "Open the app" goes to /jars in production; inert here.
+  document.querySelector("[data-app-link]").addEventListener("click", (e) => {
+    e.preventDefault();
+    openAppNote();
+  });
+  function openAppNote() {
+    sheetUrl.textContent = "/streak-jar/jars/  (the dashboard, moved off / per D1)";
+    sheet.setAttribute("data-open", "true");
+    setSheetState("success");
+  }
+
+  // Prototype view toggles.
+  const annoToggle = document.getElementById("annoToggle");
+  annoToggle.addEventListener("click", () => {
+    const on = document.body.classList.toggle("show-anno");
+    annoToggle.setAttribute("aria-pressed", String(on));
+  });
+  const emptyToggle = document.getElementById("emptyToggle");
+  emptyToggle.addEventListener("click", () => {
+    const on = emptyToggle.getAttribute("aria-pressed") !== "true";
+    emptyToggle.setAttribute("aria-pressed", String(on));
+    renderShelf(on);
+  });
+
+  // Nav hairline on scroll.
+  const nav = document.getElementById("siteNav");
+  const onScroll = () => nav.classList.toggle("nav--scrolled", window.scrollY > 8);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+</script>
+</body>
+</html>
