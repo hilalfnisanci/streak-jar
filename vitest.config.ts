@@ -1,5 +1,8 @@
 import { defineConfig } from "vitest/config";
 
+// Pin a non-UTC timezone to exercise the reported after-midnight regression.
+process.env.TZ = "Europe/Istanbul";
+
 export default defineConfig({
   oxc: {
     jsx: {

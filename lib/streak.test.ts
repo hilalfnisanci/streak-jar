@@ -14,6 +14,31 @@ describe("computeStreak", () => {
     expect(computeStreak([])).toBe(0);
   });
 
+  it.each([
+    [
+      "2026-06-10T01:00:00+03:00",
+      ["2026-06-08", "2026-06-09", "2026-06-10"],
+    ],
+    [
+      "2026-01-01T01:00:00+03:00",
+      ["2025-12-30", "2025-12-31", "2026-01-01"],
+    ],
+    [
+      "2024-03-01T01:00:00+03:00",
+      ["2024-02-28", "2024-02-29", "2024-03-01"],
+    ],
+  ])("counts through the local day at %s", (timestamp, dates) => {
+    vi.setSystemTime(new Date(timestamp));
+
+    expect(computeStreak(dates)).toBe(3);
+  });
+
+  it("does not count yesterday as today before UTC midnight", () => {
+    vi.setSystemTime(new Date("2026-06-10T01:00:00+03:00"));
+
+    expect(computeStreak(["2026-06-09"])).toBe(0);
+  });
+
   it("counts only today as a one-day streak", () => {
     expect(computeStreak(["2026-06-10"])).toBe(1);
   });
