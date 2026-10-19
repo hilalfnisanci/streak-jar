@@ -1,19 +1,48 @@
 import { render, screen } from "@testing-library/react";
 
+import { getLocalDateKey } from "../../lib/date";
 import { JARS_STORAGE_KEY } from "../../lib/storage";
 import Home from "../page";
 
 function getDateKey(offsetDays: number) {
   const date = new Date();
 
-  date.setUTCDate(date.getUTCDate() + offsetDays);
+  date.setDate(date.getDate() + offsetDays);
 
-  return date.toISOString().slice(0, 10);
+  return getLocalDateKey(date);
 }
 
 describe("Home", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it("shows the local-day streak at 01:00 in Türkiye", () => {
+    vi.stubEnv("TZ", "Europe/Istanbul");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-09T22:00:00.000Z"));
+    localStorage.setItem(
+      JARS_STORAGE_KEY,
+      JSON.stringify([
+        {
+          id: "jar-1",
+          name: "Daily reading",
+          target: 30,
+          color: "mint",
+          marbles: ["2026-06-08", "2026-06-09", "2026-06-10"],
+          createdAt: "2026-06-01T12:00:00.000Z",
+        },
+      ]),
+    );
+
+    render(<Home />);
+
+    expect(screen.getByLabelText("3 day streak")).toHaveTextContent("🔥3");
   });
 
   it("renders the empty state when there are no jars", () => {

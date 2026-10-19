@@ -8,6 +8,46 @@ describe("computeStreak", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    [
+      "Europe/Istanbul",
+      "2026-06-09T22:00:00Z",
+      ["2026-06-08", "2026-06-09", "2026-06-10"],
+    ],
+    [
+      "America/Los_Angeles",
+      "2026-06-11T06:00:00Z",
+      ["2026-06-08", "2026-06-09", "2026-06-10"],
+    ],
+    [
+      "Europe/Istanbul",
+      "2025-12-31T22:00:00Z",
+      ["2025-12-30", "2025-12-31", "2026-01-01"],
+    ],
+    [
+      "Europe/Istanbul",
+      "2024-02-29T22:00:00Z",
+      ["2024-02-28", "2024-02-29", "2024-03-01"],
+    ],
+    [
+      "America/New_York",
+      "2026-03-09T04:30:00Z",
+      ["2026-03-07", "2026-03-08", "2026-03-09"],
+    ],
+    [
+      "America/New_York",
+      "2026-11-02T05:30:00Z",
+      ["2026-10-31", "2026-11-01", "2026-11-02"],
+    ],
+  ])("counts local calendar days in %s at %s", (timezone, now, dates) => {
+    vi.stubEnv("TZ", timezone);
+    vi.setSystemTime(new Date(now));
+
+    expect(computeStreak(dates)).toBe(3);
+    expect(computeStreak(dates.slice(0, -1))).toBe(0);
   });
 
   it("returns 0 for an empty jar", () => {

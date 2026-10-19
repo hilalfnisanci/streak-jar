@@ -49,6 +49,96 @@ describe("JarDetailPage", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    [
+      "Europe/Istanbul",
+      "2026-06-09T22:00:00.000Z",
+      "2026-06-10T06:00:00.000Z",
+      "2026-06-10T22:00:00.000Z",
+    ],
+    [
+      "America/Los_Angeles",
+      "2026-06-11T04:00:00.000Z",
+      "2026-06-11T06:00:00.000Z",
+      "2026-06-11T08:00:00.000Z",
+    ],
+  ])("records one marble per local day in %s", (timezone, first, later, tomorrow) => {
+    vi.stubEnv("TZ", timezone);
+    vi.setSystemTime(new Date(first));
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 10,
+        color: "mint",
+        marbles: ["2026-06-08", "2026-06-09"],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+
+    const page = render(<JarDetailPage />);
+
+    expect(
+      screen.getByRole("img", { name: "2026-06-10: not added yet" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(getStoredStorage().jars[0].marbles).toEqual([
+      "2026-06-08",
+      "2026-06-09",
+      { date: "2026-06-10", at: first },
+    ]);
+    expect(screen.getByText("3 days in a row 🔥")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "2026-06-10: marble added" }),
+    ).toBeInTheDocument();
+
+    // Reopening later in the same local day must not allow another marble.
+    page.unmount();
+    vi.setSystemTime(new Date(later));
+    const reopenedPage = render(<JarDetailPage />);
+    const doneButton = screen.getByRole("button", { name: "Done for today ✓" });
+    expect(doneButton).toBeDisabled();
+    fireEvent.click(doneButton);
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(3);
+
+    reopenedPage.unmount();
+    vi.setSystemTime(new Date(tomorrow));
+    render(<JarDetailPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(4);
+    expect(getStoredStorage().jars[0].marbles[3]).toEqual({
+      date: "2026-06-11",
+      at: tomorrow,
+    });
+    expect(screen.getByText("4 days in a row 🔥")).toBeInTheDocument();
+  });
+
+  it("uses the local date at click time when an idle page crosses midnight", () => {
+    vi.stubEnv("TZ", "Europe/Istanbul");
+    vi.setSystemTime(new Date("2026-06-09T20:59:00.000Z"));
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 10,
+        color: "mint",
+        marbles: [],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+    render(<JarDetailPage />);
+
+    vi.setSystemTime(new Date("2026-06-09T21:01:00.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(getStoredStorage().jars[0].marbles).toEqual([
+      { date: "2026-06-10", at: "2026-06-09T21:01:00.000Z" },
+    ]);
   });
 
   it("adds today's marble to localStorage and updates the page", () => {
