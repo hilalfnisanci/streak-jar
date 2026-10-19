@@ -51,6 +51,76 @@ describe("JarDetailPage", () => {
     vi.useRealTimers();
   });
 
+  it("records the local day at 01:00 and prevents another marble that morning", () => {
+    vi.setSystemTime(new Date("2026-06-10T01:00:00+03:00"));
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 10,
+        color: "mint",
+        marbles: ["2026-06-08", "2026-06-09"],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+
+    const nightView = render(<JarDetailPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(getStoredStorage().jars[0].marbles).toEqual([
+      "2026-06-08",
+      "2026-06-09",
+      { date: "2026-06-10", at: "2026-06-09T22:00:00.000Z" },
+    ]);
+    expect(screen.getByText("3 days in a row 🔥")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "2026-06-10: marble added" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Done for today ✓" })).toBeDisabled();
+    nightView.unmount();
+
+    vi.setSystemTime(new Date("2026-06-10T09:00:00+03:00"));
+    const morningView = render(<JarDetailPage />);
+    const doneButton = screen.getByRole("button", { name: "Done for today ✓" });
+    expect(doneButton).toBeDisabled();
+    fireEvent.click(doneButton);
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(3);
+    expect(screen.getByText("3 days in a row 🔥")).toBeInTheDocument();
+    morningView.unmount();
+
+    vi.setSystemTime(new Date("2026-06-11T00:01:00+03:00"));
+    render(<JarDetailPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(4);
+    expect(getStoredStorage().jars[0].marbles[3]).toEqual({
+      date: "2026-06-11",
+      at: "2026-06-10T21:01:00.000Z",
+    });
+    expect(screen.getByText("4 days in a row 🔥")).toBeInTheDocument();
+  });
+
+  it("uses the day at click time if an unused page stays open past midnight", () => {
+    vi.setSystemTime(new Date("2026-06-09T23:59:00+03:00"));
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 10,
+        color: "mint",
+        marbles: [],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+    render(<JarDetailPage />);
+
+    vi.setSystemTime(new Date("2026-06-10T00:01:00+03:00"));
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(getStoredStorage().jars[0].marbles).toEqual([
+      { date: "2026-06-10", at: "2026-06-09T21:01:00.000Z" },
+    ]);
+  });
+
   it("adds today's marble to localStorage and updates the page", () => {
     seedStorage([
       {
