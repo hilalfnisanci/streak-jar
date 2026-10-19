@@ -133,6 +133,106 @@ describe("JarDetailPage", () => {
   });
 
   it.each([
+    [1, 9, 0],
+    [23, 23, 30],
+  ])(
+    "stores one marble per local day starting at %s:00",
+    (hour, laterHour, laterMinute) => {
+      const addedAt = new Date(2026, 5, 9, hour);
+      vi.setSystemTime(addedAt);
+      seedStorage([
+        {
+          id: "jar-1",
+          name: "Daily reading",
+          target: 5,
+          color: "mint",
+          marbles: [],
+          createdAt: "2026-06-01T12:00:00.000Z",
+        },
+      ]);
+
+      const view = render(<JarDetailPage />);
+      expect(
+        screen.getByRole("img", { name: "2026-06-09: not added yet" }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+      expect(getStoredStorage().jars[0].marbles).toEqual([
+        { date: "2026-06-09", at: addedAt.toISOString() },
+      ]);
+      expect(
+        screen.getByRole("img", { name: "2026-06-09: marble added" }),
+      ).toBeInTheDocument();
+
+      view.unmount();
+      vi.setSystemTime(new Date(2026, 5, 9, laterHour, laterMinute));
+      const laterView = render(<JarDetailPage />);
+      const doneButton = screen.getByRole("button", { name: "Done for today ✓" });
+      expect(doneButton).toBeDisabled();
+      fireEvent.click(doneButton);
+      expect(getStoredStorage().jars[0].marbles).toHaveLength(1);
+
+      laterView.unmount();
+      vi.setSystemTime(new Date(2026, 5, 10, 0, 1));
+      render(<JarDetailPage />);
+      fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+      expect(getStoredStorage().jars[0].marbles).toEqual([
+        { date: "2026-06-09", at: addedAt.toISOString() },
+        { date: "2026-06-10", at: new Date().toISOString() },
+      ]);
+    },
+  );
+
+  it("adds at local 01:00 even if yesterday is done and displays the local streak", () => {
+    vi.setSystemTime(new Date(2026, 5, 9, 1));
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 5,
+        color: "mint",
+        marbles: [
+          "2026-06-07",
+          { date: "2026-06-08", at: "2026-06-08T12:00:00.000Z" },
+        ],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+    render(<JarDetailPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(screen.getByText("3 days in a row 🔥")).toBeInTheDocument();
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(3);
+  });
+
+  it("uses the local day at click time when the page was opened before midnight", () => {
+    vi.setSystemTime(new Date(2026, 5, 9, 23, 59));
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 5,
+        color: "mint",
+        marbles: ["2026-06-08"],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+    render(<JarDetailPage />);
+
+    vi.setSystemTime(new Date(2026, 5, 10, 0, 1));
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(getStoredStorage().jars[0].marbles).toEqual([
+      "2026-06-08",
+      { date: "2026-06-10", at: new Date().toISOString() },
+    ]);
+    expect(
+      screen.getByRole("button", { name: "Done for today ✓" }),
+    ).toBeDisabled();
+  });
+
+  it.each([
     ["NaN", Number.NaN],
     ["Infinity", Number.POSITIVE_INFINITY],
     ["non-integer", 3.5],
