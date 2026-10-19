@@ -51,6 +51,80 @@ describe("JarDetailPage", () => {
     vi.useRealTimers();
   });
 
+  it("records the local day at 01:00 and blocks another marble that morning", () => {
+    const earlyMorning = new Date(2026, 5, 9, 1);
+    vi.setSystemTime(earlyMorning);
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 10,
+        color: "mint",
+        marbles: ["2026-06-07", "2026-06-08"],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+
+    const nightView = render(<JarDetailPage />);
+    expect(
+      screen.getByRole("img", { name: "2026-06-09: not added yet" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(getStoredStorage().jars[0].marbles).toEqual([
+      "2026-06-07",
+      "2026-06-08",
+      { date: "2026-06-09", at: earlyMorning.toISOString() },
+    ]);
+    expect(screen.getByText("3 days in a row 🔥")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "2026-06-09: marble added" }),
+    ).toBeInTheDocument();
+    nightView.unmount();
+
+    vi.setSystemTime(new Date(2026, 5, 9, 9));
+    const morningView = render(<JarDetailPage />);
+    const button = screen.getByRole("button", { name: "Done for today ✓" });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(3);
+    expect(screen.getByText("3 days in a row 🔥")).toBeInTheDocument();
+    morningView.unmount();
+
+    vi.setSystemTime(new Date(2026, 5, 10, 0));
+    render(<JarDetailPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(4);
+    expect(getStoredStorage().jars[0].marbles[3]).toEqual({
+      date: "2026-06-10",
+      at: new Date(2026, 5, 10, 0).toISOString(),
+    });
+    expect(screen.getByText("4 days in a row 🔥")).toBeInTheDocument();
+  });
+
+  it("uses the click's local date when an unfinished page stays open past midnight", () => {
+    vi.setSystemTime(new Date(2026, 5, 9, 23, 59));
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 10,
+        color: "mint",
+        marbles: [],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+    render(<JarDetailPage />);
+
+    const afterMidnight = new Date(2026, 5, 10, 0, 1);
+    vi.setSystemTime(afterMidnight);
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(getStoredStorage().jars[0].marbles).toEqual([
+      { date: "2026-06-10", at: afterMidnight.toISOString() },
+    ]);
+  });
+
   it("adds today's marble to localStorage and updates the page", () => {
     seedStorage([
       {

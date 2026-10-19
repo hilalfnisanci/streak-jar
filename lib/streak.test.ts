@@ -14,6 +14,24 @@ describe("computeStreak", () => {
     expect(computeStreak([])).toBe(0);
   });
 
+  it.each([1, 23])("counts local days at %i:00", (hour) => {
+    vi.setSystemTime(new Date(2026, 5, 10, hour));
+
+    expect(computeStreak(["2026-06-08", "2026-06-09", "2026-06-10"])).toBe(3);
+    expect(computeStreak(["2026-06-09"])).toBe(0);
+  });
+
+  it.each([
+    [new Date(2027, 0, 1, 1), ["2026-12-30", "2026-12-31", "2027-01-01"]],
+    [new Date(2028, 2, 1, 1), ["2028-02-28", "2028-02-29", "2028-03-01"]],
+    [new Date(2026, 2, 9, 1), ["2026-03-07", "2026-03-08", "2026-03-09"]],
+    [new Date(2026, 10, 2, 1), ["2026-10-31", "2026-11-01", "2026-11-02"]],
+  ])("counts consecutive calendar days across boundaries at %s", (now, dates) => {
+    vi.setSystemTime(now);
+
+    expect(computeStreak(dates)).toBe(3);
+  });
+
   it("counts only today as a one-day streak", () => {
     expect(computeStreak(["2026-06-10"])).toBe(1);
   });
