@@ -8,6 +8,7 @@ import { getJarFillPercent, Jar as JarVisual } from "../components/jar";
 import { Badge, Button, buttonClasses, Card, cardClasses } from "../components/ui";
 import { cn } from "../../lib/cn";
 import { getJarColor } from "../../lib/jar-colors";
+import { getLocalDateKey } from "../../lib/local-date";
 import {
   findJarById,
   type Jar,
@@ -18,10 +19,6 @@ import {
 import { computeStreak } from "../../lib/streak";
 
 const CELEBRATION_DELAY_MS = 650;
-
-function getTodayDate() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function shiftDate(date: string, offsetDays: number) {
   const shiftedDate = new Date(`${date}T00:00:00.000Z`);
@@ -131,7 +128,7 @@ export default function JarDetailPage() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
   const celebrationTimerRef = useRef<number | null>(null);
-  const today = getTodayDate();
+  const today = getLocalDateKey(new Date());
 
   useEffect(() => {
     const currentJarId = readJarIdFromLocation();

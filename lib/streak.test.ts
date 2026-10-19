@@ -8,7 +8,50 @@ describe("computeStreak", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
+
+  it.each([
+    {
+      timezone: "Europe/Istanbul",
+      instant: "2026-06-10T01:00:00+03:00",
+      days: ["2026-06-08", "2026-06-09", "2026-06-10"],
+    },
+    {
+      timezone: "America/Los_Angeles",
+      instant: "2026-06-10T23:00:00-07:00",
+      days: ["2026-06-08", "2026-06-09", "2026-06-10"],
+    },
+    {
+      timezone: "UTC",
+      instant: "2026-06-10T01:00:00Z",
+      days: ["2026-06-08", "2026-06-09", "2026-06-10"],
+    },
+    {
+      timezone: "Europe/Istanbul",
+      instant: "2027-01-01T01:00:00+03:00",
+      days: ["2026-12-30", "2026-12-31", "2027-01-01"],
+    },
+    {
+      timezone: "America/New_York",
+      instant: "2026-03-09T00:30:00-04:00",
+      days: ["2026-03-07", "2026-03-08", "2026-03-09"],
+    },
+    {
+      timezone: "America/New_York",
+      instant: "2026-11-02T00:30:00-05:00",
+      days: ["2026-10-31", "2026-11-01", "2026-11-02"],
+    },
+  ])(
+    "counts local calendar days in $timezone at $instant",
+    ({ timezone, instant, days }) => {
+      vi.stubEnv("TZ", timezone);
+      vi.setSystemTime(new Date(instant));
+
+      expect(computeStreak(days)).toBe(3);
+      expect(computeStreak(days.slice(0, -1))).toBe(0);
+    },
+  );
 
   it("returns 0 for an empty jar", () => {
     expect(computeStreak([])).toBe(0);
