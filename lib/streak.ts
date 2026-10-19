@@ -1,12 +1,9 @@
+import { getLocalDateKey } from "./date";
 import { type MarbleEntry } from "./storage";
 
 export type Marble = MarbleEntry;
 
 const dateKeyPattern = /^\d{4}-\d{2}-\d{2}$/;
-
-function getDateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 function getMarbleDate(marble: unknown) {
   if (typeof marble === "string") {
@@ -36,7 +33,8 @@ function shiftDateKey(dateKey: string, offsetDays: number) {
 
   date.setUTCDate(date.getUTCDate() + offsetDays);
 
-  return getDateKey(date);
+  // Shift a calendar key in UTC to avoid daylight-saving time transitions.
+  return date.toISOString().slice(0, 10);
 }
 
 export function computeStreak(marbles: Marble[]): number {
@@ -46,7 +44,7 @@ export function computeStreak(marbles: Marble[]): number {
       .filter((date) => dateKeyPattern.test(date)),
   );
   let streak = 0;
-  let cursorDate = getDateKey(new Date());
+  let cursorDate = getLocalDateKey(new Date());
 
   while (marbleDates.has(cursorDate)) {
     streak += 1;

@@ -51,6 +51,50 @@ describe("JarDetailPage", () => {
     vi.useRealTimers();
   });
 
+  it("records 01:00 on the local day and prevents another marble that morning", () => {
+    const addedAt = new Date(2026, 5, 10, 1);
+    vi.setSystemTime(addedAt);
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 10,
+        color: "mint",
+        marbles: ["2026-06-08", "2026-06-09"],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+
+    const page = render(<JarDetailPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+    expect(getStoredStorage().jars[0].marbles).toEqual([
+      "2026-06-08",
+      "2026-06-09",
+      { date: "2026-06-10", at: addedAt.toISOString() },
+    ]);
+    expect(screen.getByText("3 days in a row 🔥")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "2026-06-10: marble added" }),
+    ).toBeInTheDocument();
+
+    page.unmount();
+    vi.setSystemTime(new Date(2026, 5, 10, 9));
+    const morningPage = render(<JarDetailPage />);
+    const button = screen.getByRole("button", { name: "Done for today ✓" });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(3);
+    expect(screen.getByText("3 days in a row 🔥")).toBeInTheDocument();
+
+    morningPage.unmount();
+    vi.setSystemTime(new Date(2026, 5, 11, 0));
+    render(<JarDetailPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+    expect(getStoredStorage().jars[0].marbles).toHaveLength(4);
+    expect(screen.getByText("4 days in a row 🔥")).toBeInTheDocument();
+  });
+
   it("adds today's marble to localStorage and updates the page", () => {
     seedStorage([
       {
