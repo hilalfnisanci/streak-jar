@@ -1,5 +1,8 @@
 import { defineConfig } from "vitest/config";
 
+// Exercise local/UTC day differences by default; allow timezone matrix runs.
+process.env.TZ ??= "Europe/Istanbul";
+
 export default defineConfig({
   oxc: {
     jsx: {
