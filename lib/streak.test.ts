@@ -22,6 +22,33 @@ describe("computeStreak", () => {
     expect(computeStreak(["2026-06-09", "2026-06-10"])).toBe(2);
   });
 
+  it("uses the local day before UTC midnight and ignores duplicate days", () => {
+    vi.setSystemTime(new Date("2026-06-10T01:00:00+03:00"));
+
+    expect(
+      computeStreak(["2026-06-08", "2026-06-09", "2026-06-10", "2026-06-10"]),
+    ).toBe(3);
+    expect(computeStreak(["2026-06-08", "2026-06-09"])).toBe(0);
+  });
+
+  it.each([
+    [
+      "2027-01-01T01:00:00+03:00",
+      ["2026-12-30", "2026-12-31", "2027-01-01"],
+    ],
+    [
+      "2024-03-01T01:00:00+03:00",
+      ["2024-02-28", "2024-02-29", "2024-03-01"],
+    ],
+  ])(
+    "counts consecutive calendar days across a boundary at %s",
+    (instant, dates) => {
+      vi.setSystemTime(new Date(instant));
+
+      expect(computeStreak(dates)).toBe(3);
+    },
+  );
+
   it("counts a five-day streak through today", () => {
     expect(
       computeStreak([
