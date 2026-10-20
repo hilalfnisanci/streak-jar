@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 import {
   type Jar,
@@ -554,5 +554,165 @@ describe("JarDetailPage", () => {
       screen.getByRole("button", { name: "Add today's marble" }),
     ).toBeEnabled();
     expect(screen.queryByText("✓ Complete")).not.toBeInTheDocument();
+  });
+});
+
+describe("JarDetailPage longest streak", () => {
+  function makeJar(marbles: Jar["marbles"]): Jar {
+    return {
+      id: "jar-1",
+      name: "Daily reading",
+      target: 30,
+      color: "mint",
+      marbles,
+      createdAt: "2026-01-01T12:00:00.000Z",
+    };
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    setJarQuery("jar-1");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-10T12:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it.each([
+    { dates: [], expected: 0 },
+    { dates: ["2026-06-10"], expected: 1 },
+    { dates: ["2026-06-09", "2026-06-10"], expected: 2 },
+  ])(
+    "always shows $expected days without a short current-streak badge",
+    ({ dates, expected }) => {
+      seedStorage([makeJar(dates)]);
+      render(<JarDetailPage />);
+
+      expect(screen.getByText(`En uzun: ${expected} gün`)).toHaveAttribute(
+        "lang",
+        "tr",
+      );
+      expect(screen.queryByText(/days in a row/)).not.toBeInTheDocument();
+    },
+  );
+
+  it("groups the historical record with the unchanged current streak", () => {
+    seedStorage([
+      makeJar([
+        "2026-06-01",
+        "2026-06-02",
+        "2026-06-03",
+        "2026-06-04",
+        "2026-06-05",
+        "2026-06-08",
+        "2026-06-09",
+        "2026-06-10",
+      ]),
+    ]);
+    render(<JarDetailPage />);
+
+    const record = screen.getByText("En uzun: 5 gün");
+    const group = record.parentElement!;
+    expect(within(group).getByText("3 days in a row 🔥")).toBeInTheDocument();
+    expect(group).toHaveClass("flex-wrap");
+    expect(record).not.toHaveAttribute("tabindex");
+  });
+
+  it("shows a broken record older than the 14-day history without writing storage", () => {
+    const jar = makeJar(
+      Array.from(
+        { length: 12 },
+        (_, index) => `2026-01-${String(index + 1).padStart(2, "0")}`,
+      ),
+    );
+    seedLegacyJars([jar]);
+    const stored = localStorage.getItem(JARS_STORAGE_KEY);
+    render(<JarDetailPage />);
+
+    expect(screen.getByText("En uzun: 12 gün")).toBeInTheDocument();
+    expect(screen.queryByText(/days in a row/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: "2026-01-01: marble added" }),
+    ).not.toBeInTheDocument();
+    expect(localStorage.getItem(JARS_STORAGE_KEY)).toBe(stored);
+  });
+
+  it.each([
+    { older: [], before: 3, after: 4 },
+    {
+      older: [
+        "2026-06-01",
+        "2026-06-02",
+        "2026-06-03",
+        "2026-06-04",
+        "2026-06-05",
+      ],
+      before: 5,
+      after: 5,
+    },
+  ])(
+    "updates $before to $after on add and restores it on reopen",
+    ({ older, before, after }) => {
+      seedStorage([
+        makeJar([...older, "2026-06-07", "2026-06-08", "2026-06-09"]),
+      ]);
+      const view = render(<JarDetailPage />);
+      expect(screen.getByText(`En uzun: ${before} gün`)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+
+      expect(screen.getByText(`En uzun: ${after} gün`)).toBeInTheDocument();
+      expect(screen.getByText("4 days in a row 🔥")).toBeInTheDocument();
+      const doneButton = screen.getByRole("button", { name: "Done for today ✓" });
+      expect(doneButton).toBeDisabled();
+      fireEvent.click(doneButton);
+      expect(getStoredStorage().jars[0].marbles).toHaveLength(older.length + 4);
+
+      view.unmount();
+      render(<JarDetailPage />);
+      expect(screen.getByText(`En uzun: ${after} gün`)).toBeInTheDocument();
+    },
+  );
+
+  it.each(["active", "display", "trophy"])(
+    "isolates the selected jar in %s storage",
+    (location) => {
+      const jar = makeJar(["2026-06-01", "2026-06-02"]);
+      const other = {
+        ...makeJar(["2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04"]),
+        id: "jar-2",
+      };
+      if (location !== "active") {
+        jar.completedAt = "2026-06-02T12:00:00.000Z";
+      }
+      seedStorage(
+        location === "trophy" ? [other] : [other, jar],
+        location === "trophy" ? [jar] : [],
+      );
+      const stored = localStorage.getItem(JARS_STORAGE_KEY);
+      render(<JarDetailPage />);
+
+      expect(screen.getByText("En uzun: 2 gün")).toBeInTheDocument();
+      if (location !== "active") {
+        expect(
+          screen.queryByRole("button", { name: "Add today's marble" }),
+        ).not.toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      }
+      expect(localStorage.getItem(JARS_STORAGE_KEY)).toBe(stored);
+    },
+  );
+
+  it.each(["/jar", "/jar?id=missing"])("does not show a record for %s", (url) => {
+    seedStorage([makeJar([])]);
+    window.history.replaceState({}, "", url);
+    render(<JarDetailPage />);
+
+    expect(
+      screen.getByRole("heading", { name: "Jar not found" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/En uzun:/)).not.toBeInTheDocument();
   });
 });
