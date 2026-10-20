@@ -53,3 +53,35 @@ export function computeStreak(marbles: Marble[]): number {
 
   return normalizeStreakCount(streak);
 }
+
+export function computeLongestStreak(marbles: Marble[]): number {
+  const days = new Set<number>();
+
+  for (const marble of marbles) {
+    const dateKey = getMarbleDate(marble);
+    if (!dateKeyPattern.test(dateKey)) {
+      continue;
+    }
+
+    // UTC is only a calendar-day index here; the stored local date stays authoritative.
+    const timestamp = Date.parse(`${dateKey}T00:00:00.000Z`);
+    if (
+      Number.isFinite(timestamp) &&
+      new Date(timestamp).toISOString().slice(0, 10) === dateKey
+    ) {
+      days.add(timestamp / 86_400_000);
+    }
+  }
+
+  let longest = 0;
+  let current = 0;
+  let previous: number | undefined;
+
+  for (const day of [...days].sort((a, b) => a - b)) {
+    current = previous !== undefined && day === previous + 1 ? current + 1 : 1;
+    longest = Math.max(longest, current);
+    previous = day;
+  }
+
+  return longest;
+}

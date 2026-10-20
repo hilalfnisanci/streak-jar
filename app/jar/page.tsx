@@ -16,7 +16,7 @@ import {
   loadJarStorage,
   saveJarStorage,
 } from "../../lib/storage";
-import { computeStreak } from "../../lib/streak";
+import { computeLongestStreak, computeStreak } from "../../lib/streak";
 
 const CELEBRATION_DELAY_MS = 650;
 
@@ -153,6 +153,7 @@ export default function JarDetailPage() {
   );
   const isDoneToday = marbleDates.has(today);
   const streakCount = computeStreak(jar?.marbles ?? []);
+  const longestStreakCount = computeLongestStreak(jar?.marbles ?? []);
   const shouldShowStreakBadge =
     Number.isFinite(streakCount) &&
     Number.isInteger(streakCount) &&
@@ -282,11 +283,16 @@ export default function JarDetailPage() {
               ✓ Complete
             </Badge>
           ) : null}
-          {shouldShowStreakBadge ? (
-            <Badge tone="streak" className="mt-4 px-3 text-sm">
-              {streakCount} days in a row 🔥
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {shouldShowStreakBadge ? (
+              <Badge tone="streak" className="px-3 text-sm">
+                {streakCount} days in a row 🔥
+              </Badge>
+            ) : null}
+            <Badge className="px-3 text-sm" lang="tr">
+              En uzun: {longestStreakCount} gün
             </Badge>
-          ) : null}
+          </div>
           <p className="mt-5 text-xl font-semibold text-ink">
             {jar.marbles.length} / {jar.target} marbles
           </p>
