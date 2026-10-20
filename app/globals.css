@@ -4,6 +4,7 @@
   --cream: #faf7f2;
   --glass: #dcefea;
   --coral: #f47c6b;
+  --error: #b42318;
   --mint: #7bcfb6;
   --lavender: #a99be8;
   --butter: #f6d86b;
@@ -38,6 +39,7 @@
   --color-cream: var(--cream);
   --color-glass: var(--glass);
   --color-coral: var(--coral);
+  --color-error: var(--error);
   --color-mint: var(--mint);
   --color-lavender: var(--lavender);
   --color-butter: var(--butter);
