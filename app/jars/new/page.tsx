@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import {
   Button,
@@ -27,6 +28,8 @@ export default function NewJarPage() {
   const [color, setColor] = useState(jarColorList[0].key);
   const [nameError, setNameError] = useState("");
   const [targetError, setTargetError] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
+  const targetRef = useRef<HTMLInputElement>(null);
 
   const selectedColor = useMemo(
     () =>
@@ -41,7 +44,11 @@ export default function NewJarPage() {
     const trimmedName = name.trim();
 
     if (!trimmedName) {
-      setNameError("Please name your jar");
+      // Commit the error description before focusing, including on resubmission.
+      flushSync(() => {
+        setNameError("Please name your jar");
+      });
+      nameRef.current?.focus();
       return;
     }
 
@@ -52,7 +59,10 @@ export default function NewJarPage() {
       targetValue < 5 ||
       targetValue > 365
     ) {
-      setTargetError("Target must be between 5 and 365");
+      flushSync(() => {
+        setTargetError("Target must be between 5 and 365");
+      });
+      targetRef.current?.focus();
       return;
     }
 
@@ -90,6 +100,7 @@ export default function NewJarPage() {
                 }
               }}
               placeholder="Daily reading"
+              ref={nameRef}
               required
               type="text"
               value={name}
@@ -110,6 +121,7 @@ export default function NewJarPage() {
                   setTargetError("");
                 }
               }}
+              ref={targetRef}
               type="number"
               value={target}
             />

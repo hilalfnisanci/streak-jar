@@ -18,7 +18,11 @@ export function Field({
       </label>
       <div className="mt-2">{children}</div>
       {error ? (
-        <p className="mt-2 text-sm font-medium text-coral" id={`${htmlFor}-error`}>
+        <p
+          className="mt-2 text-sm font-medium text-coral"
+          id={`${htmlFor}-error`}
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
