@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { Badge, buttonClasses, cardClasses } from "./components/ui";
 import { Jar as JarVisual } from "./components/jar";
@@ -42,12 +42,18 @@ function EmptyState() {
 }
 
 function JarCard({ jar }: { jar: Jar }) {
+  const goalStatusId = useId();
   const colorStyles = getJarColor(jar.color);
   const streakCount = computeStreak(jar.marbles);
+  const goalStatus =
+    jar.completedAt || jar.marbles.length >= jar.target
+      ? "Hedefe ulaşıldı"
+      : `Hedefe ${jar.target - jar.marbles.length} gün`;
 
   return (
     <Link
       aria-label={`Open ${jar.name}`}
+      aria-describedby={goalStatusId}
       className={cardClasses(
         cn(
           "group relative flex min-h-72 flex-col items-center px-5 py-6 text-center transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream",
@@ -74,6 +80,13 @@ function JarCard({ jar }: { jar: Jar }) {
       </h2>
       <p className="mt-2 text-sm font-semibold text-soft-ink">
         {jar.marbles.length} / {jar.target}
+      </p>
+      <p
+        className="mt-1 text-sm font-semibold text-soft-ink"
+        id={goalStatusId}
+        lang="tr"
+      >
+        {goalStatus}
       </p>
       {streakCount >= 3 ? (
         <Badge

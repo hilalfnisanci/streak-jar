@@ -6,6 +6,7 @@ import {
   JARS_STORAGE_KEY,
 } from "../../../lib/storage";
 import * as streak from "../../../lib/streak";
+import Home from "../../page";
 import JarDetailPage from "../page";
 
 function seedStorage(jars: Jar[], completed: Jar[] = []) {
@@ -49,6 +50,36 @@ describe("JarDetailPage", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+  });
+
+  it("shows updated remaining days when returning home after adding a marble", () => {
+    seedStorage([
+      {
+        id: "jar-1",
+        name: "Daily reading",
+        target: 5,
+        color: "mint",
+        marbles: ["2026-06-05", "2026-06-07", "2026-06-08"],
+        createdAt: "2026-06-01T12:00:00.000Z",
+      },
+    ]);
+    const home = render(<Home />);
+    expect(screen.getByRole("link", { name: "Open Daily reading" }))
+      .toHaveAccessibleDescription("Hedefe 2 gün");
+    home.unmount();
+
+    const detail = render(<JarDetailPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+    expect(screen.getByText("4 / 5 marbles")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/");
+    detail.unmount();
+    window.history.replaceState({}, "", "/");
+    render(<Home />);
+
+    expect(screen.getByRole("link", { name: "Open Daily reading" }))
+      .toHaveAccessibleDescription("Hedefe 1 gün");
+    expect(screen.queryByText("Hedefe 2 gün")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("adds today's marble to localStorage and updates the page", () => {
