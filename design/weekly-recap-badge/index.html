@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Streak Jar — Weekly recap + shareable badge (prototype)</title>
+<!--
+  Design decisions
+  - Tokens copied verbatim from app/globals.css (:root + @theme radii/shadows). Components mirror
+    app/components/ui (Button, Badge, Card) and the .jar visual from app/components/jar.tsx.
+  - Fonts: the app loads Inter + Fraunces via next/font; they could not be embedded offline, so this
+    page uses the token file's own fallback stacks (Palatino/Georgia, Segoe UI/Helvetica).
+  - App copy is English (matches the product); the prototype toolbar is Turkish (reviewer chrome only).
+  - Week = Monday–Sunday in local days (same rule as lib/local-date). Recap opens on the last
+    *finished* week; "This week" is viewable but cannot earn a badge yet.
+  - "Full week" = a marble on all 7 days. In a jar's first week, a full week = every day since
+    the jar was created ("Starter week" badge). Comparison is hidden when there is no previous week.
+  - Comparison always uses text + arrow, never color alone.
+  - Badge card is a fixed 4:5 image (1080×1350 when exported). Share uses the Web Share API with an
+    image file; fallback is "Save image". Habit name can be hidden before sharing (privacy).
+-->
+<style>
+:root {
+  --cream: #faf7f2;
+  --glass: #dcefea;
+  --coral: #f47c6b;
+  --mint: #7bcfb6;
+  --lavender: #a99be8;
+  --butter: #f6d86b;
+  --sky: #78b9e8;
+  --peach: #f3ad7b;
+  --lilac: #d59bdc;
+  --sage: #9fbe8f;
+  --ink: #31261f;
+  --soft-ink: #7c6a5f;
+  --line: #eadfd2;
+  --coral-tint: color-mix(in srgb, var(--coral) 55%, white);
+  --mint-tint: color-mix(in srgb, var(--mint) 55%, white);
+  --lavender-tint: color-mix(in srgb, var(--lavender) 55%, white);
+  --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-heading: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-panel: 1rem;
+  --radius-pill: 9999px;
+  --shadow-warm-sm: 0 1px 2px color-mix(in srgb, var(--ink) 8%, transparent);
+  --shadow-warm-md: 0 8px 24px color-mix(in srgb, var(--ink) 6%, transparent);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--font-sans);color:var(--ink);background:#efe9e1;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--font-heading);margin:0}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* Reviewer toolbar (not part of the app) */
+.proto-bar{position:sticky;top:0;z-index:100;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;padding:8px 12px;background:var(--ink);color:var(--cream);font-size:12px}
+.proto-bar strong{margin-right:4px;font-weight:600;opacity:.8}
+.proto-bar button{border:1px solid rgb(250 247 242/.35);background:transparent;color:var(--cream);border-radius:999px;padding:5px 10px;cursor:pointer;font-size:12px}
+.proto-bar button[aria-pressed="true"]{background:var(--cream);color:var(--ink)}
+.proto-bar .sep{width:1px;height:18px;background:rgb(250 247 242/.3);margin:0 4px}
+
+/* Phone */
+.stage{display:flex;justify-content:center;padding:20px 0 40px}
+.phone{scroll-margin-top:90px;position:relative;width:390px;min-height:844px;background:var(--cream);border-radius:28px;box-shadow:0 20px 50px rgb(49 38 31/.18);overflow:hidden}
+@media (max-width:440px){.stage{padding:0}.phone{width:100%;border-radius:0;box-shadow:none;min-height:100vh}}
+.screen{display:none;padding:0 20px 40px}
+.screen.is-active{display:block}
+
+/* Header (app/components/header.tsx) */
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:20px}
+.brand{display:inline-flex;align-items:center;gap:12px;font-family:var(--font-heading);font-size:24px;font-weight:600;color:var(--ink);text-decoration:none;background:none;border:0;cursor:pointer;padding:0}
+
+/* UI primitives (app/components/ui) */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-control);font-weight:600;font-size:14px;padding:12px 20px;border:1px solid transparent;cursor:pointer;box-shadow:var(--shadow-warm-sm);transition:background .15s,border-color .15s}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 2px var(--cream),0 0 0 4px var(--ink)}
+.btn--primary{background:var(--ink);color:var(--cream)}
+.btn--primary:hover{background:var(--soft-ink)}
+.btn--secondary{background:#fff;border-color:var(--line);color:var(--ink)}
+.btn--secondary:hover{border-color:var(--soft-ink)}
+.btn--ghost{background:transparent;box-shadow:none;color:var(--ink)}
+.btn--ghost:hover{background:color-mix(in srgb,var(--line) 40%,transparent)}
+.btn--sm{padding:8px 16px}
+.btn--block{width:100%}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;border:1px solid var(--line);background:var(--cream);padding:4px 12px;font-size:12px;font-weight:600;box-shadow:var(--shadow-warm-sm);white-space:nowrap}
+.badge--success{border-color:color-mix(in srgb,var(--mint) 70%,transparent);background:color-mix(in srgb,var(--mint) 20%,var(--cream))}
+.badge--streak{border-color:color-mix(in srgb,var(--butter) 70%,transparent);background:color-mix(in srgb,var(--butter) 20%,var(--cream))}
+.card{border-radius:var(--radius-control);border:1px solid var(--line);background:#fff;box-shadow:var(--shadow-warm-sm)}
+
+/* Jar visual (mini) — from globals.css */
+.jar{position:relative;width:7rem;height:10rem;flex:none}
+.jar__neck,.jar__rim,.jar__body{border:2px solid color-mix(in srgb,var(--ink) 68%,transparent)}
+.jar__neck,.jar__rim{position:absolute;left:50%;transform:translateX(-50%);background:linear-gradient(100deg,rgb(255 255 255/80%) 0%,rgb(220 239 234/66%) 48%,rgb(255 255 255/62%) 100%);box-shadow:inset 2px 1px 0 rgb(255 255 255/80%),0 2px 3px rgb(49 38 31/10%)}
+.jar__neck{top:0;width:3.5rem;height:1.25rem;border-radius:.375rem .375rem .2rem .2rem}
+.jar__rim{top:1rem;width:5rem;height:1.25rem;border-radius:.5rem}
+.jar__body{position:absolute;bottom:0;left:50%;width:6rem;height:8rem;overflow:hidden;transform:translateX(-50%);border-radius:.75rem .75rem 1.75rem 1.75rem;background:linear-gradient(105deg,rgb(255 255 255/72%) 0%,rgb(220 239 234/38%) 46%,rgb(255 255 255/55%) 100%);box-shadow:inset 8px 0 14px rgb(255 255 255/50%),inset -8px 0 14px rgb(49 38 31/8%),inset 0 -10px 12px rgb(49 38 31/12%),0 9px 15px rgb(49 38 31/10%)}
+.jar__fill{position:absolute;inset-inline:0;bottom:0}
+.jar__marbles{position:absolute;z-index:2;right:.75rem;bottom:.75rem;left:.75rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.375rem}
+.jar__reflection{position:absolute;z-index:4;top:10%;bottom:12%;left:13%;width:15%;border-radius:999px;background:linear-gradient(180deg,rgb(255 255 255/72%),rgb(255 255 255/7%));opacity:.8;transform:rotate(5deg)}
+.marble{position:relative;display:block;width:1rem;height:1rem;border-radius:999px;box-shadow:inset -3px -4px 5px rgb(49 38 31/24%),inset 2px 2px 3px rgb(255 255 255/38%),0 3px 5px rgb(49 38 31/24%)}
+.marble::after{position:absolute;top:17%;left:22%;width:31%;height:23%;border-radius:999px;content:"";background:rgb(255 255 255/78%)}
+
+/* Home */
+.home-title{font-size:36px;font-weight:600;line-height:1.15;margin-top:4px}
+.recap-entry{display:block;width:100%;text-align:left;margin-top:20px;padding:16px;cursor:pointer;border-radius:var(--radius-card);border:1px solid var(--line);background:#fff;box-shadow:var(--shadow-warm-md);transition:transform .15s}
+.recap-entry:hover{transform:translateY(-2px)}
+.recap-entry:focus-visible{outline:none;box-shadow:0 0 0 2px var(--cream),0 0 0 4px var(--ink)}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--soft-ink)}
+.recap-entry h2{font-size:22px;font-weight:600;margin-top:4px}
+.recap-entry .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.marble-row{display:flex;gap:4px}
+.marble-row .marble{width:14px;height:14px}
+.link-cta{font-size:14px;font-weight:600;white-space:nowrap}
+.jar-grid{display:grid;gap:16px;margin-top:24px}
+.jar-card{display:flex;align-items:center;gap:16px;padding:16px;border-radius:var(--radius-control)}
+.jar-card h3{font-size:22px;font-weight:600}
+.jar-card p{font-size:14px;font-weight:600;color:var(--soft-ink);margin-top:4px}
+
+/* Recap */
+.back{display:inline-flex;align-items:center;gap:6px;margin:4px 0 12px;padding:8px 0;border:0;background:none;font-size:14px;font-weight:600;cursor:pointer;color:var(--soft-ink)}
+.recap-title{font-size:36px;font-weight:600;line-height:1.1;margin-top:4px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:16px;padding:4px;border-radius:var(--radius-control);background:color-mix(in srgb,var(--line) 60%,var(--cream))}
+.seg button{border:0;border-radius:6px;background:transparent;padding:8px;font-size:14px;font-weight:600;color:var(--soft-ink);cursor:pointer}
+.seg button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:var(--shadow-warm-sm)}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;padding:14px 4px;text-align:center}
+.summary > div + div{border-left:1px solid var(--line)}
+.summary .num{font-family:var(--font-heading);font-size:26px;font-weight:600;line-height:1.1}
+.summary .lbl{font-size:12px;color:var(--soft-ink);margin-top:2px}
+.note{margin-top:12px;padding:12px 14px;border-radius:var(--radius-control);font-size:14px;line-height:1.5;background:color-mix(in srgb,var(--sky) 14%,#fff);border:1px solid color-mix(in srgb,var(--sky) 45%,transparent)}
+.section-h{font-size:22px;font-weight:600;margin:24px 0 12px}
+.wk-card{padding:16px;border-radius:var(--radius-card);border:1px solid var(--line);background:#fff;box-shadow:var(--shadow-warm-sm)}
+.wk-card + .wk-card{margin-top:12px}
+.wk-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.wk-head h3{font-size:20px;font-weight:600;display:flex;align-items:center;gap:8px;min-width:0}
+.wk-head h3 span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:12px;height:12px;border-radius:999px;flex:none}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--soft-ink)}
+.slot{width:28px;height:28px;border-radius:999px;border:2px dashed var(--line);background:var(--cream)}
+.slot.marble{width:28px;height:28px;border:0}
+.slot.pre{border:2px solid transparent;background:repeating-linear-gradient(135deg,var(--line) 0 3px,transparent 3px 7px)}
+.slot.future{border-style:dotted;opacity:.6}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.stat .v{font-size:16px;font-weight:700}
+.stat .k{font-size:12px;color:var(--soft-ink);margin-top:2px}
+.delta{display:inline-flex;align-items:center;gap:3px}
+.wk-cta{margin-top:14px}
+.empty{text-align:center;padding:28px 16px 8px}
+.empty .ghost-jar{margin:0 auto 16px}
+.empty h2{font-size:26px;font-weight:600}
+.empty p{margin-top:8px;color:var(--soft-ink);line-height:1.6;font-size:15px}
+
+/* Sheet */
+.scrim{position:absolute;inset:0;z-index:40;background:rgb(49 38 31/.4);display:none}
+.scrim.open{display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:41;background:var(--cream);border-radius:20px 20px 0 0;padding:10px 20px 24px;box-shadow:0 -10px 30px rgb(49 38 31/.15);transform:translateY(105%);transition:transform .25s cubic-bezier(.22,1,.36,1);max-height:96%;overflow:auto}
+.sheet.open{transform:none}
+.grabber{width:40px;height:4px;border-radius:999px;background:var(--line);margin:0 auto 12px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet-head h2{font-size:22px;font-weight:600}
+.icon-btn{width:40px;height:40px;border-radius:999px;border:0;background:transparent;cursor:pointer;font-size:20px}
+.icon-btn:hover{background:color-mix(in srgb,var(--line) 50%,transparent)}
+
+/* Badge card (exported image, 4:5) */
+.badge-card{position:relative;margin:12px auto 0;width:100%;max-width:300px;aspect-ratio:4/5;border-radius:var(--radius-panel);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow-warm-md);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:22px 18px 16px;text-align:center}
+.badge-card .pattern{position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px,color-mix(in srgb,var(--ink) 16%,transparent) 1px,transparent 0);background-size:22px 22px;opacity:.55}
+.badge-card > *{position:relative}
+.ribbon{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:var(--ink);color:var(--cream);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.medal{position:relative;width:132px;height:132px;border-radius:999px;display:grid;place-items:center;box-shadow:inset 0 0 0 6px rgb(255 255 255/.7),0 10px 22px rgb(49 38 31/.16)}
+.medal-ring{position:absolute;inset:0}
+.medal-ring .marble{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px}
+.badge-card .bc-name{font-family:var(--font-heading);font-size:26px;font-weight:600;line-height:1.1}
+.badge-card .bc-sub{font-size:13px;color:var(--soft-ink);margin-top:4px}
+.badge-card .bc-foot{display:flex;align-items:center;gap:6px;font-family:var(--font-heading);font-weight:600;font-size:14px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:12px 14px;font-size:14px;font-weight:600}
+.switch{position:relative;width:44px;height:26px;flex:none;border-radius:999px;border:0;background:var(--line);cursor:pointer;transition:background .15s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:var(--shadow-warm-sm);transition:transform .15s}
+.switch[aria-checked="true"]{background:var(--ink)}
+.switch[aria-checked="true"]::after{transform:translateX(18px)}
+.sheet-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.alert{margin-top:12px;padding:12px 14px;border-radius:var(--radius-control);font-size:14px;line-height:1.5;background:color-mix(in srgb,var(--coral) 12%,#fff);border:1px solid color-mix(in srgb,var(--coral) 55%,transparent);display:none}
+.alert.show{display:block}
+.alert button{margin-top:8px}
+.toast{position:absolute;left:20px;right:20px;bottom:24px;z-index:60;padding:12px 14px;border-radius:var(--radius-control);background:var(--ink);color:var(--cream);font-size:14px;font-weight:600;box-shadow:var(--shadow-warm-md);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:none}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.sheet,.toast,.recap-entry{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="proto-bar" role="toolbar" aria-label="Prototip durumları">
+  <strong>Durum:</strong>
+  <button data-scenario="normal" aria-pressed="true">Normal hafta</button>
+  <button data-scenario="empty" aria-pressed="false">Boş hafta</button>
+  <button data-scenario="first" aria-pressed="false">İlk hafta</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button id="toggle-share-error" aria-pressed="false">Görsel oluşturma hatası</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button id="go-home-proto">↺ Ana sayfa</button>
+</div>
+
+<div class="stage">
+  <div class="phone" id="phone">
+    <header class="app-header">
+      <button class="brand" id="brand" aria-label="Streak Jar home">
+        <svg aria-hidden="true" width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M11.5 4.5h9M12.75 7.5h6.5v3.25l3.25 3.75v9.25a3.75 3.75 0 0 1-3.75 3.75h-5.5a3.75 3.75 0 0 1-3.75-3.75V14.5l3.25-3.75V7.5Z" fill="#dcefea" stroke="#31261f" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/><circle fill="#f47c6b" cx="13" cy="22" r="2"/><circle fill="#7bcfb6" cx="18.5" cy="21" r="2"/><circle fill="#f6d86b" cx="16" cy="17" r="2"/></svg>
+        Streak Jar
+      </button>
+      <button class="btn btn--primary btn--sm" type="button" tabindex="-1" aria-hidden="true">+ New jar</button>
+    </header>
+
+    <!-- HOME -->
+    <section class="screen is-active" id="screen-home" aria-labelledby="home-title">
+      <h1 class="home-title" id="home-title">Your jars</h1>
+      <button class="recap-entry" id="recap-entry" type="button"></button>
+      <div class="jar-grid" id="home-jars"></div>
+    </section>
+
+    <!-- RECAP -->
+    <section class="screen" id="screen-recap" aria-labelledby="recap-title">
+      <button class="back" id="back-home" type="button">← Your jars</button>
+      <p class="eyebrow">Weekly recap</p>
+      <h1 class="recap-title" id="recap-title"></h1>
+      <div class="seg" role="tablist" aria-label="Choose week">
+        <button role="tab" id="tab-last" aria-selected="true" aria-controls="recap-body">Last week</button>
+        <button role="tab" id="tab-this" aria-selected="false" aria-controls="recap-body">This week</button>
+      </div>
+      <div id="recap-body" role="tabpanel"></div>
+    </section>
+
+    <!-- BADGE SHEET -->
+    <div class="scrim" id="scrim"></div>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-hidden="true">
+      <div class="grabber" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <h2 id="sheet-title">Your badge</h2>
+        <button class="icon-btn" id="sheet-close" aria-label="Close">✕</button>
+      </div>
+      <div class="badge-card" id="badge-card" role="img"></div>
+      <div class="card toggle-row">
+        <label id="lbl-name" for="name-switch">Show jar name on badge</label>
+        <button class="switch" id="name-switch" role="switch" aria-checked="true" aria-labelledby="lbl-name"></button>
+      </div>
+      <div class="alert" id="share-alert" role="alert">
+        <strong>We couldn’t create the image.</strong> Your marbles are safe — this only affects the badge picture.
+        <div><button class="btn btn--secondary btn--sm" id="retry">Try again</button></div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn--secondary" id="save-btn">↓ Save image</button>
+        <button class="btn btn--primary" id="share-btn">Share</button>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+const C = {coral:'#f47c6b',mint:'#7bcfb6',lavender:'#a99be8',butter:'#f6d86b',sky:'#78b9e8'};
+const DAYS = ['M','T','W','T','F','S','S'];
+const DAYNAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+// 1 = marble, 0 = missed, null = jar did not exist yet, 'f' = future day
+const SCEN = {
+  normal: {
+    home: [{name:'Morning pages',color:'coral',count:34,target:50,streak:9},{name:'Walk 30 min',color:'mint',count:21,target:30,streak:16},{name:'Read 20 pages',color:'lavender',count:12,target:40,streak:0}],
+    last: {label:'Nov 2 – 8', jars:[
+      {name:'Morning pages',color:'coral',days:[1,1,1,1,1,1,1],longest:7,prev:5},
+      {name:'Walk 30 min',color:'mint',days:[1,1,1,1,1,1,1],longest:7,prev:7},
+      {name:'Read 20 pages',color:'lavender',days:[1,1,0,1,0,0,1],longest:2,prev:3},
+    ]},
+    this: {label:'Nov 9 – 15', jars:[
+      {name:'Morning pages',color:'coral',days:[1,1,'f','f','f','f','f'],longest:2},
+      {name:'Walk 30 min',color:'mint',days:[1,1,'f','f','f','f','f'],longest:2},
+      {name:'Read 20 pages',color:'lavender',days:[0,0,'f','f','f','f','f'],longest:0},
+    ]},
+  },
+  empty: {
+    home: [{name:'Morning pages',color:'coral',count:27,target:50,streak:0},{name:'Walk 30 min',color:'mint',count:14,target:30,streak:0}],
+    last: {label:'Nov 2 – 8', jars:[
+      {name:'Morning pages',color:'coral',days:[0,0,0,0,0,0,0],longest:0,prev:6},
+      {name:'Walk 30 min',color:'mint',days:[0,0,0,0,0,0,0],longest:0,prev:4},
+    ]},
+    this: {label:'Nov 9 – 15', jars:[
+      {name:'Morning pages',color:'coral',days:[0,0,'f','f','f','f','f'],longest:0},
+      {name:'Walk 30 min',color:'mint',days:[0,0,'f','f','f','f','f'],longest:0},
+    ]},
+  },
+  first: {
+    home: [{name:'Morning pages',color:'coral',count:7,target:30,streak:7}],
+    last: {label:'Nov 2 – 8', first:true, jars:[
+      {name:'Morning pages',color:'coral',days:[null,null,1,1,1,1,1],longest:5,prev:null},
+    ]},
+    this: {label:'Nov 9 – 15', jars:[
+      {name:'Morning pages',color:'coral',days:[1,1,'f','f','f','f','f'],longest:7,prev:null},
+    ]},
+  },
+};
+let state = {scenario:'normal', week:'last', shareError:false, badgeJar:null, showName:true, lastFocus:null};
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const marbles = (n,color,cls='marble') => Array.from({length:n},()=>`<span class="${cls}" style="background:${C[color]}"></span>`).join('');
+const count = j => j.days.filter(d=>d===1).length;
+const activeDays = j => j.days.filter(d=>d!==null && d!=='f').length;
+const isFull = (j,week) => week==='last' && activeDays(j)>0 && count(j)===activeDays(j);
+const isStarter = j => j.days.includes(null);
+
+function miniJar(j){
+  const pct = Math.min(100, Math.round(j.count/j.target*100));
+  return `<div class="jar" role="img" aria-label="${esc(j.name)} jar is ${pct}% full">
+    <div class="jar__neck"></div><div class="jar__rim"></div>
+    <div class="jar__body"><span class="jar__fill" style="height:${pct}%;background:color-mix(in srgb,${C[j.color]} 35%,transparent)"></span>
+    <span class="jar__marbles">${marbles(Math.min(12,j.count),j.color)}</span><span class="jar__reflection"></span></div></div>`;
+}
+
+function renderHome(){
+  const s = SCEN[state.scenario];
+  const wk = s.last; const total = wk.jars.reduce((a,j)=>a+count(j),0);
+  const full = wk.jars.filter(j=>isFull(j,'last')).length;
+  let head, sub;
+  if (total===0){ head='Last week was quiet'; sub='No marbles Nov 2 – 8. A fresh week started Monday.'; }
+  else if (wk.first){ head='Your first week is in'; sub=`${total} marbles since you started · ${full ? 'badge ready' : 'see how it went'}`; }
+  else { head=`${total} marbles last week`; sub = full ? `${full} ${full===1?'jar':'jars'} filled every day · badge ready` : 'See how each jar did'; }
+  const preview = total===0 ? `<div class="marble-row" aria-hidden="true">${'<span class="slot" style="width:14px;height:14px;border-width:1.5px"></span>'.repeat(7)}</div>`
+    : `<div class="marble-row" aria-hidden="true">${wk.jars.flatMap(j=>Array(Math.min(count(j),4)).fill(j.color)).slice(0,10).map(c=>`<span class="marble" style="background:${C[c]}"></span>`).join('')}</div>`;
+  $('recap-entry').innerHTML = `<span class="eyebrow">Weekly recap · ${wk.label}</span>
+    <h2>${head}</h2><p style="font-size:14px;color:var(--soft-ink);margin-top:4px">${sub}</p>
+    <span class="row">${preview}<span class="link-cta">See your week →</span></span>`;
+  $('recap-entry').setAttribute('aria-label', `Weekly recap, ${wk.label}. ${head}. ${sub}. Open`);
+  $('home-jars').innerHTML = s.home.map(j=>`<div class="card jar-card" style="background:color-mix(in srgb,${C[j.color]} 10%,#fff);border-color:color-mix(in srgb,${C[j.color]} 60%,transparent)">
+    ${miniJar(j)}<div style="min-width:0"><h3>${esc(j.name)}</h3><p>${j.count} / ${j.target}</p>
+    ${j.streak>=3?`<span class="badge badge--streak" style="margin-top:10px" aria-label="${j.streak} day streak"><span aria-hidden="true">🔥</span>${j.streak}</span>`:''}</div></div>`).join('');
+}
+
+function deltaHTML(j){
+  if (j.prev===null || j.prev===undefined) return `<div class="stat"><div class="v">—</div><div class="k">No last week yet</div></div>`;
+  const d = count(j)-j.prev;
+  const txt = d>0?`<span aria-hidden="true">▲</span> +${d}`: d<0?`<span aria-hidden="true">▼</span> ${d}`:`<span aria-hidden="true">＝</span> Same`;
+  const sr = d>0?`${d} more than last week`: d<0?`${-d} fewer than last week`:'same as last week';
+  return `<div class="stat"><div class="v delta" aria-label="${sr}">${txt}</div><div class="k">vs ${j.prev} last week</div></div>`;
+}
+
+function renderRecap(){
+  const s = SCEN[state.scenario]; const wk = s[state.week];
+  $('recap-title').textContent = wk.label;
+  $('tab-last').setAttribute('aria-selected', state.week==='last');
+  $('tab-this').setAttribute('aria-selected', state.week==='this');
+  const total = wk.jars.reduce((a,j)=>a+count(j),0);
+  const hasPrev = wk.jars.some(j=>j.prev!=null);
+  const prevTotal = wk.jars.reduce((a,j)=>a+(j.prev||0),0);
+  const full = wk.jars.filter(j=>isFull(j,state.week)).length;
+  const best = Math.max(...wk.jars.map(j=>j.longest));
+  let html = '';
+  let tdelta = '—', tdeltaLbl='No last week yet';
+  if (state.week==='last' && hasPrev){ const d=total-prevTotal; tdelta = d>0?`▲ +${d}`:d<0?`▼ ${d}`:'＝ 0'; tdeltaLbl='vs last week'; }
+  if (state.week==='this'){ tdelta = `${full}`; tdeltaLbl='Full weeks (Sun)'; }
+  html += `<div class="card summary">
+    <div><div class="num">${total}</div><div class="lbl">Marbles</div></div>
+    <div><div class="num">${best} ${best===1?'day':'days'}</div><div class="lbl">Best streak</div></div>
+    <div><div class="num">${state.week==='last'?tdelta:`${2}/7`}</div><div class="lbl">${state.week==='last'?tdeltaLbl:'Days so far'}</div></div></div>`;
+
+  if (state.week==='this') html += `<p class="note">This week is still going. Badges unlock Monday for every jar that gets a marble each day.</p>`;
+  if (state.week==='last' && wk.first) html += `<p class="note"><strong>Your first week!</strong> We count from the day you created each jar, so a late start can still be a full week. Comparisons start next week.</p>`;
+
+  if (state.week==='last' && total===0){
+    html += `<div class="empty"><div class="jar ghost-jar" aria-hidden="true"><div class="jar__neck"></div><div class="jar__rim"></div><div class="jar__body"><span class="jar__reflection"></span></div></div>
+      <h2>A quiet week</h2><p>No marbles went in between Nov 2 and Nov 8. That happens — your jars kept every marble from before, and Monday was a fresh start.</p>
+      <button class="btn btn--primary" style="margin-top:20px" data-go="home">Drop today’s marble</button></div>
+      <h2 class="section-h">Your jars</h2>`;
+  } else {
+    html += `<h2 class="section-h">By jar</h2>`;
+  }
+  html += wk.jars.map((j,i)=>jarWeekCard(j,i)).join('');
+  $('recap-body').innerHTML = html;
+}
+
+function jarWeekCard(j,i){
+  const full = isFull(j,state.week);
+  const starter = isStarter(j);
+  const slots = j.days.map((d,k)=>{
+    let cls='slot', lbl='no marble';
+    if (d===1){cls='slot marble'; lbl='marble';}
+    else if (d===null){cls='slot pre'; lbl='before jar was created';}
+    else if (d==='f'){cls='slot future'; lbl='not yet';}
+    return `<div class="day" role="listitem" aria-label="${DAYNAMES[k]}: ${lbl}"><span class="${cls}" ${d===1?`style="background:${C[j.color]}"`:''}></span><span aria-hidden="true">${DAYS[k]}</span></div>`;
+  }).join('');
+  const ofDays = starter ? `${count(j)} / ${activeDays(j)}` : `${count(j)} / ${state.week==='this'?2:7}`;
+  const badge = full ? `<span class="badge badge--success">✓ ${starter?'Starter week':'Full week'}</span>` : '';
+  const cta = full ? `<button class="btn btn--primary btn--block wk-cta" data-badge="${i}">Get your badge</button>`
+    : (state.week==='last' && count(j)>0 ? `<p style="margin-top:12px;font-size:13px;color:var(--soft-ink)">${activeDays(j)-count(j)} ${activeDays(j)-count(j)===1?'day':'days'} short of a full week badge.</p>` : '');
+  return `<article class="wk-card" style="border-color:color-mix(in srgb,${C[j.color]} 55%,var(--line))" aria-label="${esc(j.name)}">
+    <div class="wk-head"><h3><span class="dot" style="background:${C[j.color]}" aria-hidden="true"></span><span class="t">${esc(j.name)}</span></h3>${badge}</div>
+    <div class="days" role="list" aria-label="Days this week">${slots}</div>
+    <div class="stats">
+      <div class="stat"><div class="v">${ofDays}</div><div class="k">${starter?'Days since start':'Marbles'}</div></div>
+      <div class="stat"><div class="v">${j.longest} ${j.longest===1?'day':'days'}</div><div class="k">Longest streak</div></div>
+      ${state.week==='this' ? `<div class="stat"><div class="v">—</div><div class="k">Compare on Sun</div></div>` : deltaHTML(j)}
+    </div>${cta}</article>`;
+}
+
+function renderBadge(){
+  const j = SCEN[state.scenario][state.week].jars[state.badgeJar];
+  const label = SCEN[state.scenario][state.week].label;
+  const starter = isStarter(j);
+  const n = count(j);
+  const slots = starter ? activeDays(j) : 7;
+  const ring = Array.from({length:slots},(_,k)=>{const a=(k/slots)*Math.PI*2-Math.PI/2; const on=k<n;
+    return `<span class="marble" style="left:${50+46*Math.cos(a)}%;top:${50+46*Math.sin(a)}%;background:${on?C[j.color]:'var(--line)'}"></span>`}).join('');
+  const name = state.showName ? esc(j.name) : 'A habit, kept';
+  $('badge-card').style.background = `color-mix(in srgb,${C[j.color]} 14%,var(--cream))`;
+  $('badge-card').innerHTML = `<span class="pattern" aria-hidden="true"></span>
+    <span class="ribbon">✓ ${starter?'Starter week':'Full week'}</span>
+    <div class="medal" style="background:color-mix(in srgb,${C[j.color]} 35%,#fff)">
+      <div class="medal-ring" aria-hidden="true">${ring}</div>
+      <div><div style="font-family:var(--font-heading);font-size:44px;font-weight:600;line-height:1">${n}</div><div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soft-ink)">${starter?`of ${activeDays(j)} days`:'days in a row'}</div></div>
+    </div>
+    <div><div class="bc-name">${name}</div><div class="bc-sub">${label}, 2026 · 🔥 ${j.longest}-day streak</div></div>
+    <div class="bc-foot"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 32 32" fill="none"><path d="M11.5 4.5h9M12.75 7.5h6.5v3.25l3.25 3.75v9.25a3.75 3.75 0 0 1-3.75 3.75h-5.5a3.75 3.75 0 0 1-3.75-3.75V14.5l3.25-3.75V7.5Z" fill="#dcefea" stroke="#31261f" stroke-width="1.5"/><circle fill="#f47c6b" cx="13" cy="22" r="2"/><circle fill="#7bcfb6" cx="18.5" cy="21" r="2"/><circle fill="#f6d86b" cx="16" cy="17" r="2"/></svg>Streak Jar</div>`;
+  $('badge-card').setAttribute('aria-label', `Badge preview: ${starter?'Starter week':'Full week'}, ${name}, ${n} days, ${label}`);
+  $('name-switch').setAttribute('aria-checked', state.showName);
+  $('share-alert').classList.remove('show');
+}
+
+function fileName(){
+  const j = SCEN[state.scenario][state.week].jars[state.badgeJar];
+  const slug = state.showName ? j.name.toLowerCase().replace(/[^a-z0-9]+/g,'-') : 'habit';
+  return `streak-jar-${slug}-nov-2-8.png`;
+}
+
+function openSheet(i){
+  state.badgeJar=i; state.lastFocus=document.activeElement; renderBadge();
+  $('scrim').classList.add('open'); $('sheet').classList.add('open'); $('sheet').setAttribute('aria-hidden','false');
+  setTimeout(()=>$('sheet-close').focus(),50);
+}
+function closeSheet(){
+  $('scrim').classList.remove('open'); $('sheet').classList.remove('open'); $('sheet').setAttribute('aria-hidden','true');
+  if (state.lastFocus) state.lastFocus.focus();
+}
+let toastT;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
+function exportAction(kind){
+  const btn = kind==='share'?$('share-btn'):$('save-btn'); const orig=btn.innerHTML;
+  btn.disabled=true; btn.innerHTML='Creating image…';
+  setTimeout(()=>{
+    btn.disabled=false; btn.innerHTML=orig;
+    if (state.shareError){ $('share-alert').classList.add('show'); $('retry').dataset.kind=kind; return; }
+    if (kind==='share') toast('Share sheet opened (device share — simulated)');
+    else toast(`Saved ${fileName()}`);
+  },700);
+}
+
+function show(screen){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('is-active', s.id==='screen-'+screen));
+  if (screen==='recap'){ renderRecap(); $('recap-title').setAttribute('tabindex','-1'); $('recap-title').focus(); }
+  else { renderHome(); }
+  $('phone').scrollIntoView({block:'start'});
+}
+
+// Wiring
+$('recap-entry').addEventListener('click',()=>{state.week='last';show('recap')});
+$('back-home').addEventListener('click',()=>show('home'));
+$('brand').addEventListener('click',()=>show('home'));
+$('go-home-proto').addEventListener('click',()=>{closeSheet();show('home')});
+$('tab-last').addEventListener('click',()=>{state.week='last';renderRecap()});
+$('tab-this').addEventListener('click',()=>{state.week='this';renderRecap()});
+document.querySelector('.seg').addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key==='ArrowLeft'){ state.week = state.week==='last'?'this':'last'; renderRecap(); $(state.week==='last'?'tab-last':'tab-this').focus(); }});
+$('recap-body').addEventListener('click',e=>{
+  const b=e.target.closest('[data-badge]'); if(b) openSheet(+b.dataset.badge);
+  const g=e.target.closest('[data-go]'); if(g) show(g.dataset.go);
+});
+$('sheet-close').addEventListener('click',closeSheet);
+$('scrim').addEventListener('click',closeSheet);
+$('name-switch').addEventListener('click',()=>{state.showName=!state.showName; renderBadge();});
+$('share-btn').addEventListener('click',()=>exportAction('share'));
+$('save-btn').addEventListener('click',()=>exportAction('save'));
+$('retry').addEventListener('click',()=>{ $('share-alert').classList.remove('show'); exportAction($('retry').dataset.kind||'save'); });
+document.addEventListener('keydown',e=>{
+  if(!$('sheet').classList.contains('open')) return;
+  if(e.key==='Escape') closeSheet();
+  if(e.key==='Tab'){ const f=[...$('sheet').querySelectorAll('button:not([disabled])')].filter(x=>x.offsetParent!==null); const first=f[0], last=f[f.length-1];
+    if(e.shiftKey && document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();} }
+});
+document.querySelectorAll('[data-scenario]').forEach(b=>b.addEventListener('click',()=>{
+  state.scenario=b.dataset.scenario; state.week='last';
+  document.querySelectorAll('[data-scenario]').forEach(x=>x.setAttribute('aria-pressed', x===b));
+  closeSheet(); show(document.getElementById('screen-recap').classList.contains('is-active')?'recap':'home');
+}));
+$('toggle-share-error').addEventListener('click',e=>{ state.shareError=!state.shareError; e.currentTarget.setAttribute('aria-pressed',state.shareError); });
+renderHome();
+</script>
+</body>
+</html>
