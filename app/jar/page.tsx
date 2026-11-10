@@ -106,7 +106,7 @@ function HistoryGrid({
               aria-label={label}
               className={`flex h-11 w-11 items-center justify-center rounded-full border text-xl font-semibold shadow-sm ${
                 hasMarble
-                  ? `${colorStyles.solid} border-transparent text-white`
+                  ? `${colorStyles.solid} ${colorStyles.onSolid} border-transparent`
                   : "border-line bg-white text-soft-ink"
               }`}
               key={date}

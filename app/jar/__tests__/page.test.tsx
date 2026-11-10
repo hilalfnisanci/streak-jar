@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
+import { jarColors } from "../../../lib/jar-colors";
 import {
   type Jar,
   type JarStorage,
@@ -290,7 +291,7 @@ describe("JarDetailPage", () => {
     expect(screen.getByText("?")).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "2026-05-27: marble added" }),
-    ).toBeInTheDocument();
+    ).toHaveClass(jarColors.sage.solid, jarColors.sage.onSolid);
     expect(
       screen.getByRole("img", { name: "2026-06-01: missed" }),
     ).toBeInTheDocument();
