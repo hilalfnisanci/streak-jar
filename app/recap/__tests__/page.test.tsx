@@ -374,6 +374,31 @@ describe("RecapPage", () => {
     expect(downloadBlobMock).not.toHaveBeenCalled();
   });
 
+  it("drops a finished image once the sheet was closed while it rendered", async () => {
+    const share = stubFileSharing(() => Promise.resolve());
+    let resolveRender: (blob: Blob) => void = () => undefined;
+    renderBadgePngMock.mockReturnValue(
+      new Promise<Blob>((resolve) => {
+        resolveRender = resolve;
+      }),
+    );
+    seed(normalWeek);
+
+    render(<RecapPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Get your badge" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Save image" }));
+    expect(screen.getByRole("button", { name: "Creating image…" })).toBeDisabled();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await act(async () => resolveRender(png));
+
+    expect(downloadBlobMock).not.toHaveBeenCalled();
+    expect(share).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
   it("shows loading, then an error with a retry of the same action (AC19, AC20)", async () => {
     stubFileSharing(() => Promise.resolve());
     let rejectRender: (error: Error) => void = () => undefined;

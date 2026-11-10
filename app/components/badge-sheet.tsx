@@ -119,6 +119,12 @@ export function BadgeSheet({ jarWeek, week, onClose, onSaved }: BadgeSheetProps)
     try {
       const blob = await getPng();
 
+      // The sheet can be closed (Esc or scrim) while the image renders; a
+      // download or share sheet appearing after that would be a surprise.
+      if (!mountedRef.current) {
+        return;
+      }
+
       if (action === "save") {
         downloadBlob(blob, fileName);
         onSaved();
