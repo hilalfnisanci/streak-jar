@@ -14,6 +14,8 @@ export type JarColorKey = (typeof jarColorOrder)[number];
 export type JarColorStyle = {
   label: string;
   solid: string;
+  /** Text color for content drawn on `solid`; must meet WCAG AA (4.5:1). */
+  onSolid: string;
   fill: string;
   border: string;
   borderSoft: string;
@@ -26,6 +28,7 @@ export const jarColors: Record<JarColorKey, JarColorStyle> = {
   coral: {
     label: "Coral",
     solid: "bg-coral",
+    onSolid: "text-ink",
     fill: "bg-coral/35",
     border: "border-coral/70",
     borderSoft: "border-coral/60",
@@ -36,6 +39,7 @@ export const jarColors: Record<JarColorKey, JarColorStyle> = {
   mint: {
     label: "Mint",
     solid: "bg-mint",
+    onSolid: "text-ink",
     fill: "bg-mint/35",
     border: "border-mint/70",
     borderSoft: "border-mint/60",
@@ -46,6 +50,7 @@ export const jarColors: Record<JarColorKey, JarColorStyle> = {
   lavender: {
     label: "Lavender",
     solid: "bg-lavender",
+    onSolid: "text-ink",
     fill: "bg-lavender/35",
     border: "border-lavender/70",
     borderSoft: "border-lavender/60",
@@ -56,6 +61,7 @@ export const jarColors: Record<JarColorKey, JarColorStyle> = {
   butter: {
     label: "Butter",
     solid: "bg-butter",
+    onSolid: "text-ink",
     fill: "bg-butter/45",
     border: "border-butter/70",
     borderSoft: "border-butter/70",
@@ -66,6 +72,7 @@ export const jarColors: Record<JarColorKey, JarColorStyle> = {
   sky: {
     label: "Sky",
     solid: "bg-sky",
+    onSolid: "text-ink",
     fill: "bg-sky/35",
     border: "border-sky/70",
     borderSoft: "border-sky/60",
@@ -76,6 +83,7 @@ export const jarColors: Record<JarColorKey, JarColorStyle> = {
   peach: {
     label: "Peach",
     solid: "bg-peach",
+    onSolid: "text-ink",
     fill: "bg-peach/35",
     border: "border-peach/70",
     borderSoft: "border-peach/60",
@@ -86,6 +94,7 @@ export const jarColors: Record<JarColorKey, JarColorStyle> = {
   lilac: {
     label: "Lilac",
     solid: "bg-lilac",
+    onSolid: "text-ink",
     fill: "bg-lilac/35",
     border: "border-lilac/70",
     borderSoft: "border-lilac/60",
@@ -96,6 +105,7 @@ export const jarColors: Record<JarColorKey, JarColorStyle> = {
   sage: {
     label: "Sage",
     solid: "bg-sage",
+    onSolid: "text-ink",
     fill: "bg-sage/35",
     border: "border-sage/70",
     borderSoft: "border-sage/60",
