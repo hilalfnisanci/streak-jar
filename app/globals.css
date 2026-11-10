@@ -380,6 +380,62 @@
   }
 }
 
+/* Weekly recap day slots. Marble slots reuse .jar__marble with the jar colour. */
+.day-slot {
+  display: block;
+  border-radius: 9999px;
+}
+
+.day-slot--missed {
+  border: 2px solid var(--line);
+  background: var(--cream);
+}
+
+.day-slot--before {
+  border: 2px solid transparent;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--line) 0 3px,
+    transparent 3px 7px
+  );
+}
+
+.day-slot--future {
+  border: 2px dotted var(--soft-ink);
+  opacity: 0.45;
+}
+
+@keyframes badge-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.badge-sheet {
+  animation: badge-sheet-in 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.badge-sheet-scrim,
+.toast {
+  animation: fade-in 200ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .confetti-piece {
     animation: none;
@@ -391,6 +447,12 @@
   }
 
   .jar__marble--drop {
+    animation: none;
+  }
+
+  .badge-sheet,
+  .badge-sheet-scrim,
+  .toast {
     animation: none;
   }
 }

@@ -27,7 +27,7 @@ function normalizeStreakCount(streak: number) {
   return Math.max(0, Math.floor(streak));
 }
 
-function shiftDateKey(dateKey: string, offsetDays: number) {
+export function shiftDateKey(dateKey: string, offsetDays: number) {
   const [year, month, day] = dateKey.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
 
@@ -37,12 +37,18 @@ function shiftDateKey(dateKey: string, offsetDays: number) {
   return date.toISOString().slice(0, 10);
 }
 
-export function computeStreak(marbles: Marble[]): number {
-  const marbleDates = new Set(
+// Distinct valid marble day keys. Legacy strings and {date, at} objects count
+// the same; malformed entries are ignored.
+export function getMarbleDateSet(marbles: readonly unknown[]): Set<string> {
+  return new Set(
     marbles
       .map((marble) => getMarbleDate(marble))
       .filter((date) => dateKeyPattern.test(date)),
   );
+}
+
+export function computeStreak(marbles: Marble[]): number {
+  const marbleDates = getMarbleDateSet(marbles);
   let streak = 0;
   let cursorDate = getLocalDateKey(new Date());
 

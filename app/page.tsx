@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 
 import { Badge, buttonClasses, cardClasses } from "./components/ui";
 import { Jar as JarVisual } from "./components/jar";
+import { RecapEntryCard } from "./components/recap-entry-card";
 import { cn } from "../lib/cn";
 import {
   getJarColor,
   jarColorSolids,
 } from "../lib/jar-colors";
+import { getLocalDateKey } from "../lib/local-date";
 import { type Jar, loadCompletedJars, loadJars } from "../lib/storage";
 import { computeStreak } from "../lib/streak";
 
@@ -118,6 +120,10 @@ export default function Home() {
           + New jar
         </Link>
       </div>
+      <RecapEntryCard
+        storage={{ jars, completed: completedJars }}
+        today={getLocalDateKey(new Date())}
+      />
       {jars.length > 0 ? (
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {jars.map((jar) => (

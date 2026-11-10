@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 
 import { getLocalDateKey } from "../../lib/local-date";
 import { JARS_STORAGE_KEY } from "../../lib/storage";
@@ -54,6 +54,124 @@ describe("Home", () => {
     expect(
       screen.getByRole("link", { name: "Create your first jar" }),
     ).toHaveAttribute("href", "/jars/new");
+    expect(screen.queryByText(/Weekly recap/)).not.toBeInTheDocument();
+  });
+
+  describe("weekly recap card", () => {
+    function seedJars(jars: object[], completed: object[] = []) {
+      localStorage.setItem(JARS_STORAGE_KEY, JSON.stringify({ jars, completed }));
+    }
+
+    function getRecapCard() {
+      return screen.getByRole("link", { name: /^Weekly recap, / });
+    }
+
+    beforeEach(() => {
+      // Tue Nov 10, 2026: last week is Nov 2 – 8, this week is Nov 9 – 15.
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 10, 10, 12));
+    });
+
+    it("summarises last week under Your jars and opens the recap (AC1)", () => {
+      seedJars(
+        [
+          {
+            id: "jar-1",
+            name: "Morning pages",
+            target: 60,
+            color: "coral",
+            marbles: [
+              "2026-11-02",
+              "2026-11-03",
+              "2026-11-04",
+              { date: "2026-11-05", at: "2026-11-05T06:00:00.000Z" },
+              "2026-11-06",
+              "2026-11-07",
+              "2026-11-08",
+            ],
+            createdAt: "2026-10-01T09:00:00.000Z",
+          },
+        ],
+        [
+          {
+            id: "jar-2",
+            name: "Drink water",
+            target: 4,
+            color: "sky",
+            marbles: ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05"],
+            createdAt: "2026-10-01T09:00:00.000Z",
+            completedAt: "2026-11-05T15:00:00.000Z",
+          },
+        ],
+      );
+
+      render(<Home />);
+
+      const card = getRecapCard();
+
+      expect(card).toHaveAttribute("href", "/recap");
+      expect(within(card).getByText("Weekly recap · Nov 2 – 8")).toBeInTheDocument();
+      expect(within(card).getByText("11 marbles last week")).toBeInTheDocument();
+      expect(
+        within(card).getByText("1 jar filled every day · badge ready"),
+      ).toBeInTheDocument();
+      expect(
+        screen
+          .getByRole("heading", { name: "Your jars" })
+          .compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it("calls out a quiet week kindly (AC8)", () => {
+      seedJars([
+        {
+          id: "jar-1",
+          name: "Morning pages",
+          target: 60,
+          color: "coral",
+          marbles: ["2026-10-27", "2026-10-28"],
+          createdAt: "2026-10-01T09:00:00.000Z",
+        },
+      ]);
+
+      render(<Home />);
+
+      const card = getRecapCard();
+
+      expect(within(card).getByText("Last week was quiet")).toBeInTheDocument();
+      expect(
+        within(card).getByText(
+          "No marbles Nov 2 – 8. A fresh week started Monday.",
+        ),
+      ).toBeInTheDocument();
+      expect(card).toHaveAccessibleName(
+        "Weekly recap, Nov 2 – 8. Last week was quiet. No marbles Nov 2 – 8. A fresh week started Monday. Open recap",
+      );
+    });
+
+    it("opens this week when no week has finished yet (AC10)", () => {
+      seedJars([
+        {
+          id: "jar-1",
+          name: "Guitar practice",
+          target: 30,
+          color: "butter",
+          marbles: ["2026-11-09", "2026-11-10"],
+          createdAt: "2026-11-09T09:00:00.000Z",
+        },
+      ]);
+
+      render(<Home />);
+
+      const card = getRecapCard();
+
+      expect(card).toHaveAttribute("href", "/recap?week=this");
+      expect(within(card).getByText("Weekly recap · Nov 9 – 15")).toBeInTheDocument();
+      expect(
+        within(card).getByText("Your first recap arrives Monday"),
+      ).toBeInTheDocument();
+      expect(within(card).getByText("See this week so far")).toBeInTheDocument();
+    });
   });
 
   it("renders stored jars as cards", async () => {
