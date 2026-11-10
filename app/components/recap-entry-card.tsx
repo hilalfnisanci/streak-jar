@@ -90,7 +90,7 @@ export function RecapEntryCard({
 
   return (
     <Link
-      aria-label={`Weekly recap, ${range}. ${head}. ${sub}. Open recap`}
+      aria-label={`Weekly recap, ${range}. ${head}. ${sub.replace(/\.$/, "")}. Open recap`}
       className={cardClasses(
         "mt-6 block min-h-11 w-full p-4 transition motion-safe:hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-cream sm:grid sm:grid-cols-[1fr_auto] sm:items-center sm:gap-x-6 sm:px-6 sm:py-5",
       )}

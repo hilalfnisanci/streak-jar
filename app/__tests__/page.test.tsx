@@ -144,6 +144,9 @@ describe("Home", () => {
           "No marbles Nov 2 – 8. A fresh week started Monday.",
         ),
       ).toBeInTheDocument();
+      expect(card).toHaveAccessibleName(
+        "Weekly recap, Nov 2 – 8. Last week was quiet. No marbles Nov 2 – 8. A fresh week started Monday. Open recap",
+      );
     });
 
     it("opens this week when no week has finished yet (AC10)", () => {

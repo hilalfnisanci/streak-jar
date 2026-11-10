@@ -291,6 +291,17 @@ describe("RecapPage", () => {
         name: "Badge preview: Full week, Morning pages, 7 of 7 days, Nov 2 – 8, 2026 · 7-day streak",
       }),
     ).toBeInTheDocument();
+    // The ring must stay absolutely positioned even though `.jar__marble`
+    // (unlayered CSS) sets position: relative, so it matches the PNG ring.
+    const ring = dialog
+      .getByRole("img", { name: /^Badge preview:/ })
+      .querySelectorAll<HTMLElement>(".jar__marble");
+    expect(ring).toHaveLength(7);
+    for (const marble of ring) {
+      expect(marble.style.position).toBe("absolute");
+    }
+    expect(ring[0].style.left).toBe("50%");
+    expect(ring[0].style.top).toBe("4%");
     // Without file sharing, Save image is the only action (AC18).
     expect(dialog.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
 

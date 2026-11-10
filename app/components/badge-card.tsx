@@ -55,11 +55,13 @@ export function BadgeCard({ model }: { model: BadgeModel }) {
             return (
               <span
                 className={cn(
-                  "jar__marble absolute -ml-2 -mt-2 h-4 w-4",
+                  "jar__marble -ml-2 -mt-2 h-4 w-4",
                   index < model.count ? colorStyles.solid : "bg-line",
                 )}
                 key={index}
                 style={{
+                  // Inline so the unlayered `.jar__marble { position: relative }` rule can't override Tailwind's `absolute`.
+                  position: "absolute",
                   left: `${50 + 46 * Math.cos(angle)}%`,
                   top: `${50 + 46 * Math.sin(angle)}%`,
                 }}
