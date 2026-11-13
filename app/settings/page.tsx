@@ -18,6 +18,7 @@ import {
   serializeBackup,
 } from "../../lib/backup";
 import { downloadBlob } from "../../lib/badge-image";
+import { createHistoryCsv, getHistoryFileName } from "../../lib/history-csv";
 import { createJarId } from "../../lib/jar-id";
 import { getLocalDateKey } from "../../lib/local-date";
 import {
@@ -71,6 +72,17 @@ export default function SettingsPage() {
     );
     setErrors([]);
     setStatus("Backup downloaded");
+  };
+
+  const handleHistoryExport = () => {
+    downloadBlob(
+      new Blob([createHistoryCsv(loadJarStorage())], {
+        type: "text/csv;charset=utf-8",
+      }),
+      getHistoryFileName(getLocalDateKey(new Date())),
+    );
+    setErrors([]);
+    setStatus("History downloaded");
   };
 
   // Re-read storage at apply time so a change made in another tab between
@@ -181,6 +193,23 @@ export default function SettingsPage() {
             variant="secondary"
           >
             Choose file
+          </Button>
+        </Card>
+
+        <Card className="p-5 sm:col-span-2 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div>
+            <h3 className="text-base font-semibold text-ink">Export history</h3>
+            <p className="mt-1 text-sm leading-6 text-soft-ink">
+              Open your marble days in Excel or Google Sheets, one row per jar
+              and day. The file is UTF-8 encoded and can&apos;t be imported back.
+            </p>
+          </div>
+          <Button
+            className="mt-4 shrink-0 sm:mt-0"
+            onClick={handleHistoryExport}
+            variant="secondary"
+          >
+            Export history (CSV)
           </Button>
         </Card>
       </div>
