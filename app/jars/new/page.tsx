@@ -14,11 +14,8 @@ import {
 import { Jar as JarVisual } from "../../components/jar";
 import { cn } from "../../../lib/cn";
 import { jarColorList } from "../../../lib/jar-colors";
+import { createJarId } from "../../../lib/jar-id";
 import { type Jar, loadJars, saveJars } from "../../../lib/storage";
-
-function createJarId() {
-  return globalThis.crypto?.randomUUID?.() ?? `jar-${Date.now()}`;
-}
 
 export default function NewJarPage() {
   const router = useRouter();

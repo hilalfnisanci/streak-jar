@@ -3,7 +3,7 @@ import { type MarbleEntry } from "./storage";
 
 export type Marble = MarbleEntry;
 
-const dateKeyPattern = /^\d{4}-\d{2}-\d{2}$/;
+export const dateKeyPattern = /^\d{4}-\d{2}-\d{2}$/;
 
 function getMarbleDate(marble: unknown) {
   if (typeof marble === "string") {
