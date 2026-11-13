@@ -90,6 +90,31 @@ describe("SettingsPage", () => {
     click.mockRestore();
   });
 
+  it("downloads the marble history as a dated CSV without touching storage", async () => {
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+    const before = localStorage.getItem(JARS_STORAGE_KEY);
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Export history (CSV)" }));
+
+    const blob = createObjectURL.mock.calls[0][0];
+    const link = click.mock.contexts[0] as HTMLAnchorElement;
+
+    expect(link.download).toMatch(/^streak-jar-history-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(blob.type).toBe("text/csv;charset=utf-8");
+    expect((await readBlob(blob)).split("\r\n")).toEqual([
+      "jar_name,jar_status,date,time,streak_day,jar_id",
+      "Reading,active,2026-11-02,,1,jar-a",
+      "Walking,active,2026-11-02,,1,jar-b",
+      "",
+    ]);
+    expect(localStorage.getItem(JARS_STORAGE_KEY)).toBe(before);
+    expect(screen.getByRole("status")).toHaveTextContent("History downloaded");
+    click.mockRestore();
+  });
+
   it("lists validation errors and leaves storage untouched", async () => {
     render(<SettingsPage />);
     chooseBackup(backupOf({ jars: [makeJar({ id: "jar-c", target: 3 })], completed: [] }));

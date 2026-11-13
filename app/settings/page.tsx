@@ -18,6 +18,7 @@ import {
   serializeBackup,
 } from "../../lib/backup";
 import { downloadBlob } from "../../lib/badge-image";
+import { createHistoryCsv, getHistoryFileName } from "../../lib/history-csv";
 import { createJarId } from "../../lib/jar-id";
 import { getLocalDateKey } from "../../lib/local-date";
 import {
@@ -71,6 +72,17 @@ export default function SettingsPage() {
     );
     setErrors([]);
     setStatus("Backup downloaded");
+  };
+
+  const handleHistoryExport = () => {
+    downloadBlob(
+      new Blob([createHistoryCsv(loadJarStorage())], {
+        type: "text/csv;charset=utf-8",
+      }),
+      getHistoryFileName(getLocalDateKey(new Date())),
+    );
+    setErrors([]);
+    setStatus("History downloaded");
   };
 
   // Re-read storage at apply time so a change made in another tab between
@@ -181,6 +193,22 @@ export default function SettingsPage() {
             variant="secondary"
           >
             Choose file
+          </Button>
+        </Card>
+
+        <Card className="p-5">
+          <h3 className="text-base font-semibold text-ink">
+            Export history (CSV)
+          </h3>
+          <p className="mt-1 text-sm leading-6 text-soft-ink">
+            Download every marble day as a spreadsheet, one row per jar and day.
+          </p>
+          <Button
+            className="mt-4"
+            onClick={handleHistoryExport}
+            variant="secondary"
+          >
+            Export history (CSV)
           </Button>
         </Card>
       </div>
