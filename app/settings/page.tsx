@@ -201,7 +201,7 @@ export default function SettingsPage() {
             <h3 className="text-base font-semibold text-ink">Export history</h3>
             <p className="mt-1 text-sm leading-6 text-soft-ink">
               Open your marble days in Excel or Google Sheets, one row per jar
-              and day. This file can&apos;t be imported back.
+              and day. The file is UTF-8 encoded and can&apos;t be imported back.
             </p>
           </div>
           <Button
