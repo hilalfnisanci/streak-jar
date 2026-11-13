@@ -196,15 +196,16 @@ export default function SettingsPage() {
           </Button>
         </Card>
 
-        <Card className="p-5">
-          <h3 className="text-base font-semibold text-ink">
-            Export history (CSV)
-          </h3>
-          <p className="mt-1 text-sm leading-6 text-soft-ink">
-            Download every marble day as a spreadsheet, one row per jar and day.
-          </p>
+        <Card className="p-5 sm:col-span-2 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div>
+            <h3 className="text-base font-semibold text-ink">Export history</h3>
+            <p className="mt-1 text-sm leading-6 text-soft-ink">
+              Open your marble days in Excel or Google Sheets, one row per jar
+              and day. This file can&apos;t be imported back.
+            </p>
+          </div>
           <Button
-            className="mt-4"
+            className="mt-4 shrink-0 sm:mt-0"
             onClick={handleHistoryExport}
             variant="secondary"
           >
