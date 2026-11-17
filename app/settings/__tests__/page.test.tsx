@@ -90,6 +90,29 @@ describe("SettingsPage", () => {
     click.mockRestore();
   });
 
+  it("downloads the streak history as a dated CSV without changing storage", async () => {
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+
+    const blob = createObjectURL.mock.calls[0][0];
+    const link = click.mock.contexts[0] as HTMLAnchorElement;
+
+    expect(link.download).toMatch(/^streak-jar-history-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect((await readBlob(blob)).split("\r\n")).toEqual([
+      "Jar,Status,Date,Time,Streak day",
+      "Reading,active,2026-11-02,,1",
+      "Walking,active,2026-11-02,,1",
+      "",
+    ]);
+    expect(screen.getByRole("status")).toHaveTextContent("Streak history downloaded");
+    expect(readStorage()).toEqual(local);
+    click.mockRestore();
+  });
+
   it("lists validation errors and leaves storage untouched", async () => {
     render(<SettingsPage />);
     chooseBackup(backupOf({ jars: [makeJar({ id: "jar-c", target: 3 })], completed: [] }));

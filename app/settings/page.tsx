@@ -18,6 +18,11 @@ import {
   serializeBackup,
 } from "../../lib/backup";
 import { downloadBlob } from "../../lib/badge-image";
+import {
+  buildHistoryRows,
+  getHistoryFileName,
+  serializeHistoryCsv,
+} from "../../lib/history-csv";
 import { createJarId } from "../../lib/jar-id";
 import { getLocalDateKey } from "../../lib/local-date";
 import {
@@ -71,6 +76,17 @@ export default function SettingsPage() {
     );
     setErrors([]);
     setStatus("Backup downloaded");
+  };
+
+  const handleHistoryExport = () => {
+    const csv = serializeHistoryCsv(buildHistoryRows(loadJarStorage()));
+
+    downloadBlob(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+      getHistoryFileName(getLocalDateKey(new Date())),
+    );
+    setErrors([]);
+    setStatus("Streak history downloaded");
   };
 
   // Re-read storage at apply time so a change made in another tab between
@@ -181,6 +197,19 @@ export default function SettingsPage() {
             variant="secondary"
           >
             Choose file
+          </Button>
+        </Card>
+
+        <Card className="p-5">
+          <h3 className="text-base font-semibold text-ink">
+            Export streak history
+          </h3>
+          <p className="mt-1 text-sm leading-6 text-soft-ink">
+            Download every completed day as a CSV file for Excel or Google
+            Sheets.
+          </p>
+          <Button className="mt-4" onClick={handleHistoryExport} variant="secondary">
+            Export CSV
           </Button>
         </Card>
       </div>
