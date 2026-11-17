@@ -19,19 +19,22 @@ describe("buildHistoryRows", () => {
     vi.useRealTimers();
   });
 
-  // Tests run in Europe/Istanbul (UTC+3), so times are shown three hours ahead.
+  // Build timestamps from local wall-clock times so the test passes in any TZ.
+  const localAt = (day: number, hours: number, minutes: number) =>
+    new Date(2026, 10, day, hours, minutes).toISOString();
+
   it("writes one row per day in order, with local first time and streak day", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-11-16T23:30:00+03:00"));
+    vi.setSystemTime(new Date(2026, 10, 16, 23, 30));
 
     const reading = makeJar({
       marbles: [
-        { date: "2026-11-16", at: "2026-11-16T18:30:00.000Z" },
+        { date: "2026-11-16", at: localAt(16, 21, 30) },
         "2026-11-12",
-        { date: "2026-11-14", at: "2026-11-14T09:00:00.000Z" },
-        { date: "2026-11-14", at: "2026-11-14T04:05:00.000Z" },
+        { date: "2026-11-14", at: localAt(14, 12, 0) },
+        { date: "2026-11-14", at: localAt(14, 7, 5) },
         "not-a-date",
-        { date: "2026-11-15", at: "2026-11-15T06:00:00.000Z" },
+        { date: "2026-11-15", at: localAt(15, 9, 0) },
       ],
     });
     const storage = {
