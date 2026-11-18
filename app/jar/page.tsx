@@ -16,7 +16,7 @@ import {
   loadJarStorage,
   saveJarStorage,
 } from "../../lib/storage";
-import { computeStreak } from "../../lib/streak";
+import { computeStreak, getMarbleDateSet } from "../../lib/streak";
 
 const CELEBRATION_DELAY_MS = 650;
 
@@ -25,18 +25,6 @@ function shiftDate(date: string, offsetDays: number) {
   shiftedDate.setUTCDate(shiftedDate.getUTCDate() + offsetDays);
 
   return shiftedDate.toISOString().slice(0, 10);
-}
-
-function getMarbleDate(marble: MarbleEntry) {
-  return typeof marble === "string" ? marble : marble.date;
-}
-
-function getMarbleDateSet(marbles: MarbleEntry[]) {
-  return new Set(
-    marbles
-      .map((marble) => getMarbleDate(marble))
-      .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)),
-  );
 }
 
 function getLastFourteenDays(today: string) {

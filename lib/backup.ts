@@ -1,6 +1,6 @@
 import { jarColorOrder } from "./jar-colors";
 import { type Jar, type JarStorage, type MarbleEntry } from "./storage";
-import { dateKeyPattern } from "./streak";
+import { isValidDateKey } from "./streak";
 
 export const BACKUP_APP_ID = "streak-jar";
 export const BACKUP_VERSION = 1;
@@ -44,20 +44,16 @@ function isDateString(value: unknown): value is string {
   return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
 
-function isDateKey(value: unknown): value is string {
-  return typeof value === "string" && dateKeyPattern.test(value);
-}
-
 function parseMarble(
   value: unknown,
   path: string,
   errors: string[],
 ): MarbleEntry | undefined {
-  if (isDateKey(value)) {
+  if (isValidDateKey(value)) {
     return value;
   }
 
-  if (isRecord(value) && isDateKey(value.date) && typeof value.at === "string") {
+  if (isRecord(value) && isValidDateKey(value.date) && typeof value.at === "string") {
     return { date: value.date, at: value.at };
   }
 

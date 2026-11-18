@@ -3,7 +3,7 @@ import { type MarbleEntry } from "./storage";
 
 export type Marble = MarbleEntry;
 
-export const dateKeyPattern = /^\d{4}-\d{2}-\d{2}$/;
+const dateKeyPattern = /^\d{4}-\d{2}-\d{2}$/;
 
 function getMarbleDate(marble: unknown) {
   if (typeof marble === "string") {
@@ -37,20 +37,33 @@ export function shiftDateKey(dateKey: string, offsetDays: number) {
   return date.toISOString().slice(0, 10);
 }
 
+// A YYYY-MM-DD key for a real calendar day: "2024-02-29" passes, while
+// "2026-02-30" and "2026-13-01" fail because they do not round-trip.
+export function isValidDateKey(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    dateKeyPattern.test(value) &&
+    shiftDateKey(value, 0) === value
+  );
+}
+
 // Distinct valid marble day keys. Legacy strings and {date, at} objects count
 // the same; malformed entries are ignored.
 export function getMarbleDateSet(marbles: readonly unknown[]): Set<string> {
   return new Set(
     marbles
       .map((marble) => getMarbleDate(marble))
-      .filter((date) => dateKeyPattern.test(date)),
+      .filter(isValidDateKey),
   );
 }
 
+// A streak stays alive until the day ends: with no marble yet today, it is
+// counted back from yesterday.
 export function computeStreak(marbles: Marble[]): number {
   const marbleDates = getMarbleDateSet(marbles);
+  const today = getLocalDateKey(new Date());
   let streak = 0;
-  let cursorDate = getLocalDateKey(new Date());
+  let cursorDate = marbleDates.has(today) ? today : shiftDateKey(today, -1);
 
   while (marbleDates.has(cursorDate)) {
     streak += 1;
