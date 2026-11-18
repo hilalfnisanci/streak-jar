@@ -1,4 +1,4 @@
-import { computeStreak, type Marble } from "./streak";
+import { computeStreak, isValidDateKey, type Marble } from "./streak";
 
 describe("computeStreak", () => {
   beforeEach(() => {
@@ -33,7 +33,8 @@ describe("computeStreak", () => {
         "2026-06-10",
       ]),
     ).toBe(3);
-    expect(computeStreak(["2026-06-09"])).toBe(0);
+    expect(computeStreak(["2026-06-08", "2026-06-09"])).toBe(2);
+    expect(computeStreak(["2026-06-08"])).toBe(0);
   });
 
   it.each([
@@ -62,8 +63,15 @@ describe("computeStreak", () => {
     ).toBe(5);
   });
 
-  it("returns 0 when today is missing even if yesterday exists", () => {
-    expect(computeStreak(["2026-06-09"])).toBe(0);
+  it("keeps yesterday's streak while today has no marble yet", () => {
+    const throughYesterday = ["2026-06-07", "2026-06-08", "2026-06-09"];
+
+    expect(computeStreak(throughYesterday)).toBe(3);
+    expect(computeStreak([...throughYesterday, "2026-06-10"])).toBe(4);
+  });
+
+  it("returns 0 when neither today nor yesterday has a marble", () => {
+    expect(computeStreak(["2026-06-06", "2026-06-07", "2026-06-08"])).toBe(0);
   });
 
   it("counts only from today back to a mid-history gap", () => {
@@ -105,6 +113,14 @@ describe("computeStreak", () => {
     expect(Number.isInteger(streak)).toBe(true);
     expect(streak).toBeGreaterThanOrEqual(0);
     expect(streak).toBe(0);
+  });
+
+  it("accepts only real calendar days as date keys", () => {
+    expect(
+      ["2024-02-29", "2025-02-29", "2026-02-30", "2026-13-01", "2026-6-1"].filter(
+        isValidDateKey,
+      ),
+    ).toEqual(["2024-02-29"]);
   });
 
   it("returns 0 for marbles only from old dates", () => {

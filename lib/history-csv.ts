@@ -1,5 +1,5 @@
 import { type Jar, type JarStorage } from "./storage";
-import { dateKeyPattern, shiftDateKey } from "./streak";
+import { isValidDateKey, shiftDateKey } from "./streak";
 
 export const HISTORY_CSV_HEADER = ["Jar", "Status", "Date", "Time", "Streak day"];
 
@@ -45,7 +45,7 @@ function collectDays(marbles: readonly unknown[]): Map<string, string | undefine
       ({ date, at } = marble as { date?: unknown; at?: unknown });
     }
 
-    if (typeof date !== "string" || !dateKeyPattern.test(date)) {
+    if (!isValidDateKey(date)) {
       continue;
     }
 

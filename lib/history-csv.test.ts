@@ -34,6 +34,7 @@ describe("buildHistoryRows", () => {
         { date: "2026-11-14", at: localAt(14, 12, 0) },
         { date: "2026-11-14", at: localAt(14, 7, 5) },
         "not-a-date",
+        "2026-02-30",
         { date: "2026-11-15", at: localAt(15, 9, 0) },
       ],
     });

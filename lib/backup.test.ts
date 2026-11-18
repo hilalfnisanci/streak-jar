@@ -70,6 +70,11 @@ describe("parseBackup", () => {
       "data.jars[0].marbles[1]:",
     ],
     [
+      "an impossible calendar date",
+      backupText({ jars: [makeJar({ marbles: ["2026-11-02", { date: "2026-02-30", at: "2026-11-03T07:00:00.000Z" }] })], completed: [] }),
+      "data.jars[0].marbles[1]:",
+    ],
+    [
       "an id used twice",
       backupText({ jars: [makeJar()], completed: [makeJar({ completedAt: "2026-11-05T20:00:00.000Z" })] }),
       "data.completed[0].id:",
