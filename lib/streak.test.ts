@@ -33,6 +33,7 @@ describe("computeStreak", () => {
         "2026-06-10",
       ]),
     ).toBe(3);
+    expect(computeStreak(["2026-06-08", "2026-06-09"])).toBe(2);
     expect(computeStreak(["2026-06-08"])).toBe(0);
   });
 
