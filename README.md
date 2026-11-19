@@ -8,3 +8,4 @@ Streak rule: a streak counts consecutive local days with a marble, ending today 
 ## Status
 
 This repository is currently in its initial setup phase.
+Chat PR flow test (2026-11-19).
