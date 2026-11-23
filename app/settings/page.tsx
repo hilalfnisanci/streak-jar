@@ -86,7 +86,7 @@ export default function SettingsPage() {
       getHistoryFileName(getLocalDateKey(new Date())),
     );
     setErrors([]);
-    setStatus("Streak history downloaded");
+    setStatus("History downloaded");
   };
 
   // Re-read storage at apply time so a change made in another tab between
@@ -202,14 +202,14 @@ export default function SettingsPage() {
 
         <Card className="p-5">
           <h3 className="text-base font-semibold text-ink">
-            Export streak history
+            Export history (CSV)
           </h3>
           <p className="mt-1 text-sm leading-6 text-soft-ink">
             Download every completed day as a CSV file for Excel or Google
             Sheets.
           </p>
           <Button className="mt-4" onClick={handleHistoryExport} variant="secondary">
-            Export CSV
+            Export history (CSV)
           </Button>
         </Card>
       </div>
