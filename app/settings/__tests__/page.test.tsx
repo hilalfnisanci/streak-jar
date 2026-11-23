@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
+import { REMINDERS_STORAGE_KEY } from "../../../lib/reminders";
 import { type Jar, JARS_STORAGE_KEY, type JarStorage } from "../../../lib/storage";
 import SettingsPage from "../page";
 
@@ -57,6 +58,12 @@ const local: JarStorage = {
   completed: [],
 };
 
+const reminderPreferences = {
+  time: "19:15",
+  enabledJarIds: ["jar-a"],
+  lastClaimByJar: { "jar-a": "2026-11-03" },
+};
+
 describe("SettingsPage", () => {
   const createObjectURL = vi.fn((_blob: Blob) => "blob:backup");
 
@@ -69,10 +76,15 @@ describe("SettingsPage", () => {
     seed(local);
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("downloads the stored jars as a dated backup file", async () => {
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => {});
+    localStorage.setItem(REMINDERS_STORAGE_KEY, JSON.stringify(reminderPreferences));
 
     render(<SettingsPage />);
     fireEvent.click(screen.getByRole("button", { name: "Export jars" }));
@@ -81,12 +93,15 @@ describe("SettingsPage", () => {
     const link = click.mock.contexts[0] as HTMLAnchorElement;
 
     expect(link.download).toMatch(/^streak-jar-backup-\d{4}-\d{2}-\d{2}\.json$/);
-    expect(JSON.parse(await readBlob(blob))).toMatchObject({
+    expect(JSON.parse(await readBlob(blob))).toEqual({
       app: "streak-jar",
       version: 1,
+      exportedAt: expect.any(String),
       data: local,
     });
-    expect(screen.getByRole("status")).toHaveTextContent("Backup downloaded");
+    expect(screen.getByRole("status", { name: "Data actions" })).toHaveTextContent(
+      "Backup downloaded",
+    );
     click.mockRestore();
   });
 
@@ -108,7 +123,9 @@ describe("SettingsPage", () => {
       "Walking,active,2026-11-02,,1,jar-b",
       "",
     ]);
-    expect(screen.getByRole("status")).toHaveTextContent("History downloaded");
+    expect(screen.getByRole("status", { name: "Data actions" })).toHaveTextContent(
+      "History downloaded",
+    );
     expect(readStorage()).toEqual(local);
     click.mockRestore();
   });
@@ -143,6 +160,8 @@ describe("SettingsPage", () => {
     // Another tab adds a jar after the file was chosen.
     const otherTabJar = makeJar({ id: "jar-other", name: "Water" });
     seed({ ...local, jars: [...local.jars, otherTabJar] });
+    // Another tab just set a reminder on the jar about to be replaced.
+    localStorage.setItem(REMINDERS_STORAGE_KEY, JSON.stringify(reminderPreferences));
 
     const readingChoices = within(
       within(dialog).getByRole("group", { name: "Reading" }),
@@ -157,8 +176,11 @@ describe("SettingsPage", () => {
       ["jar-other", "Water", 1],
       ["jar-new", "Stretching", 1],
     ]);
-    expect(screen.getByRole("status")).toHaveTextContent(
+    expect(screen.getByRole("status", { name: "Data actions" })).toHaveTextContent(
       "Imported 1 jar, replaced 1, kept 1 of yours.",
+    );
+    expect(JSON.parse(localStorage.getItem(REMINDERS_STORAGE_KEY) ?? "null")).toEqual(
+      reminderPreferences,
     );
   });
 
@@ -171,8 +193,47 @@ describe("SettingsPage", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(readStorage()).toEqual(local);
-    expect(screen.getByRole("status")).toHaveTextContent(
+    expect(screen.getByRole("status", { name: "Data actions" })).toHaveTextContent(
       "Import cancelled. Nothing was changed.",
     );
+  });
+
+  it("keeps the scheduled time when the field is cleared and persists a correction", async () => {
+    vi.stubGlobal("Notification", class {
+      static permission = "granted";
+      static requestPermission = vi.fn();
+    });
+    vi.stubGlobal("navigator", Object.create(window.navigator, {
+      locks: {
+        value: { request: (_name: string, work: () => unknown) => Promise.resolve().then(work) },
+      },
+      serviceWorker: { value: { register: vi.fn() } },
+    }));
+
+    const view = render(<SettingsPage />);
+    const region = within(screen.getByRole("region", { name: "Reminders" }));
+    const input = region.getByLabelText("Reminder time");
+    expect(input).toHaveValue("20:00");
+
+    fireEvent.change(input, { target: { value: "" } });
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription(/Enter a time like 20:00/);
+    expect(localStorage.getItem(REMINDERS_STORAGE_KEY)).toBeNull();
+
+    // A preference written in another tab must survive saving the new time.
+    localStorage.setItem(REMINDERS_STORAGE_KEY, JSON.stringify(reminderPreferences));
+    fireEvent.change(input, { target: { value: "18:45" } });
+    await waitFor(() => expect(region.getByRole("status")).toHaveTextContent(
+      "Reminder time saved · 18:45",
+    ));
+    expect(input).toBeValid();
+    expect(JSON.parse(localStorage.getItem(REMINDERS_STORAGE_KEY) ?? "null")).toEqual({
+      ...reminderPreferences,
+      time: "18:45",
+    });
+
+    view.unmount();
+    render(<SettingsPage />);
+    expect(screen.getByLabelText("Reminder time")).toHaveValue("18:45");
   });
 });

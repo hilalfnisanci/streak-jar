@@ -17,6 +17,7 @@ import {
   saveJarStorage,
 } from "../../lib/storage";
 import { computeStreak, getMarbleDateSet } from "../../lib/streak";
+import { DailyReminder } from "./daily-reminder";
 
 const CELEBRATION_DELAY_MS = 650;
 
@@ -115,17 +116,81 @@ export default function JarDetailPage() {
   const [jar, setJar] = useState<Jar | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
+  const [shouldFocusReminder, setShouldFocusReminder] = useState(false);
   const celebrationTimerRef = useRef<number | null>(null);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const today = getLocalDateKey(new Date());
 
   useEffect(() => {
     const currentJarId = readJarIdFromLocation();
-    const storedJar = findJarById(currentJarId);
+    const loadCurrentJar = () => setJar(findJarById(currentJarId) ?? null);
 
     setJarId(currentJarId);
-    setJar(storedJar ?? null);
+    loadCurrentJar();
     setHasLoaded(true);
+
+    const focusReminder = () => {
+      // A notification may outlive a marble added (or a jar completed) in another tab.
+      loadCurrentJar();
+      setShouldFocusReminder(true);
+    };
+    const consumeReminderHash = () => {
+      if (
+        window.location.hash !== "#reminder" ||
+        readJarIdFromLocation() !== currentJarId
+      ) {
+        return false;
+      }
+
+      const { pathname, search } = window.location;
+      window.history.replaceState(window.history.state, "", pathname + search);
+      return true;
+    };
+    const handleReminderHash = () => {
+      if (consumeReminderHash()) {
+        focusReminder();
+      }
+    };
+    const handleReminderMessage = ({ data, ports }: MessageEvent) => {
+      if (data?.jarId !== currentJarId || readJarIdFromLocation() !== currentJarId) {
+        return;
+      }
+
+      if (
+        data.type === "match-jar-reminder" &&
+        data.pathname === window.location.pathname &&
+        new URLSearchParams(window.location.search).size === 1
+      ) {
+        ports[0]?.postMessage(true);
+      } else if (data.type === "focus-jar-reminder") {
+        focusReminder();
+      }
+    };
+
+    if (consumeReminderHash()) {
+      setShouldFocusReminder(true);
+    }
+    const worker = navigator.serviceWorker;
+    worker?.addEventListener("message", handleReminderMessage);
+    window.addEventListener("hashchange", handleReminderHash);
+    return () => {
+      worker?.removeEventListener("message", handleReminderMessage);
+      window.removeEventListener("hashchange", handleReminderHash);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!shouldFocusReminder) {
+      return;
+    }
+
+    if (!isCelebrating) {
+      const addButton = addButtonRef.current;
+      (addButton && !addButton.disabled ? addButton : headingRef.current)?.focus();
+    }
+    setShouldFocusReminder(false);
+  }, [isCelebrating, shouldFocusReminder]);
 
   useEffect(() => {
     return () => {
@@ -262,7 +327,11 @@ export default function JarDetailPage() {
         </aside>
 
         <div>
-          <h1 className="font-heading text-4xl font-semibold leading-tight text-ink sm:text-5xl">
+          <h1
+            className="font-heading text-4xl font-semibold leading-tight text-ink sm:text-5xl"
+            ref={headingRef}
+            tabIndex={-1}
+          >
             {jar.name}
           </h1>
           {isCompleted ? (
@@ -310,10 +379,18 @@ export default function JarDetailPage() {
               className="mt-8 w-full sm:w-auto"
               disabled={isDoneToday}
               onClick={handleAddToday}
+              ref={addButtonRef}
               size="lg"
             >
               {isDoneToday ? "Done for today ✓" : "Add today's marble"}
             </Button>
+          )}
+          {isFull || isCompleted ? (
+            <p className="mt-5 text-sm text-soft-ink">
+              Reminders pause for full and completed jars.
+            </p>
+          ) : (
+            <DailyReminder key={jar.id} jarId={jar.id} isDoneToday={isDoneToday} />
           )}
         </div>
       </div>

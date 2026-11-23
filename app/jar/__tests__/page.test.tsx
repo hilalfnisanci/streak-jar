@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
+import { setJarReminder, setReminderTime } from "../../../lib/reminders";
 import {
   type Jar,
   type JarStorage,
@@ -48,10 +49,11 @@ describe("JarDetailPage", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
-  it("adds today's marble to localStorage and updates the page", () => {
+  it("focuses today's action from a reminder and saves the marble", () => {
     seedStorage([
       {
         id: "jar-1",
@@ -65,13 +67,40 @@ describe("JarDetailPage", () => {
         createdAt: "2026-06-01T12:00:00.000Z",
       },
     ]);
+    const serviceWorker = new EventTarget();
+    vi.stubGlobal("navigator", { serviceWorker });
+    window.history.replaceState(
+      { from: "notification" },
+      "",
+      "/jar?id=jar-1#reminder",
+    );
 
     render(<JarDetailPage />);
 
     expect(screen.getByText("2 / 5 marbles")).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add today's marble" }),
+    const addButton = screen.getByRole("button", { name: "Add today's marble" });
+    expect(addButton).toHaveFocus();
+    expect(window.location.search).toBe("?id=jar-1");
+    expect(window.location.hash).toBe("");
+    expect(window.history.state).toEqual({ from: "notification" });
+    addButton.blur();
+    const reply = vi.fn();
+    serviceWorker.dispatchEvent(
+      new MessageEvent("message", {
+        data: { type: "match-jar-reminder", jarId: "jar-1", pathname: "/jar" },
+        ports: [{ postMessage: reply } as unknown as MessagePort],
+      }),
     );
+    expect(reply).toHaveBeenCalledWith(true);
+    act(() => {
+      serviceWorker.dispatchEvent(
+        new MessageEvent("message", {
+          data: { type: "focus-jar-reminder", jarId: "jar-1" },
+        }),
+      );
+    });
+    expect(addButton).toHaveFocus();
+    fireEvent.click(addButton);
 
     expect(
       screen.getByRole("button", { name: "Done for today ✓" }),
@@ -99,6 +128,58 @@ describe("JarDetailPage", () => {
       ],
       completed: [],
     });
+  });
+
+  it("changes only this jar’s reminder and keeps the shared time and another jar's opt-in", async () => {
+    const jar: Jar = {
+      id: "jar-1",
+      name: "Daily reading",
+      target: 5,
+      color: "mint",
+      marbles: [],
+      createdAt: "2026-06-01T12:00:00.000Z",
+    };
+    seedStorage([jar, { ...jar, id: "jar-2", name: "Morning walk" }]);
+    const notification = {
+      permission: "granted",
+      requestPermission: vi.fn(),
+    };
+    vi.stubGlobal("Notification", notification);
+    vi.stubGlobal("navigator", {
+      serviceWorker: Object.assign(new EventTarget(), { register: vi.fn() }),
+      locks: { request: async (_name: string, callback: () => unknown) => callback() },
+    });
+
+    await setJarReminder("jar-2", true);
+    const page = render(<JarDetailPage />);
+    const reminder = screen.getByRole("switch", { name: "Daily reminder" });
+    expect(reminder).toHaveAttribute("aria-checked", "false");
+    await act(async () => {
+      fireEvent.click(reminder);
+    });
+    expect(reminder).toHaveAttribute("aria-checked", "true");
+    expect(notification.requestPermission).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await setReminderTime("21:15");
+    });
+    expect(reminder).toHaveAccessibleDescription(/21:15/);
+    fireEvent.click(screen.getByRole("button", { name: "Add today's marble" }));
+    expect(reminder).toHaveAccessibleDescription(/no reminder tonight/);
+    await act(async () => {
+      fireEvent.click(reminder);
+    });
+    expect(reminder).toHaveAttribute("aria-checked", "false");
+    expect(reminder).toHaveAccessibleDescription(/21:15/);
+
+    page.unmount();
+    setJarQuery("jar-2");
+    render(<JarDetailPage />);
+    expect(screen.getByRole("heading", { name: "Morning walk" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Daily reminder" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
   });
 
   it("disables the add button when today's marble already exists", () => {
@@ -501,6 +582,7 @@ describe("JarDetailPage", () => {
     expect(
       screen.queryByRole("button", { name: "Add today's marble" }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Daily reminder" })).not.toBeInTheDocument();
   });
 
   it("loads poured completed jars from the trophy shelf", () => {

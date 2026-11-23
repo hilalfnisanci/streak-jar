@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { type ChangeEvent, useRef, useState } from "react";
+import { type ChangeEvent, useRef, useState, useSyncExternalStore } from "react";
 
 import { ImportConflictDialog } from "../components/import-conflict-dialog";
-import { Button, buttonClasses, Card } from "../components/ui";
+import { Button, buttonClasses, Card, Field, Input } from "../components/ui";
 import {
   type ConflictChoice,
   createBackup,
@@ -26,8 +26,16 @@ import {
 import { createJarId } from "../../lib/jar-id";
 import { getLocalDateKey } from "../../lib/local-date";
 import {
+  isReminderTime,
+  setReminderTime,
+  useReminderPermission,
+  useReminderSettings,
+} from "../../lib/reminders";
+import {
+  JARS_STORAGE_KEY,
   type JarStorage,
   loadJarStorage,
+  readJarStorageForReminders,
   saveJarStorage,
 } from "../../lib/storage";
 
@@ -58,6 +66,115 @@ function formatSummary(summary: MergeSummary) {
   }
 
   return `${parts.join(", ")}.`;
+}
+
+function subscribeToJars(onChange: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === JARS_STORAGE_KEY || event.key === null) onChange();
+  };
+
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
+}
+
+function ReminderSettings() {
+  const permission = useReminderPermission();
+  const { time, enabledJarIds } = useReminderSettings();
+  const jarCount = useSyncExternalStore(
+    subscribeToJars,
+    () => {
+      if (permission !== "granted") return null;
+      const storage = readJarStorageForReminders();
+      if (!storage) return null;
+
+      const jars = [...storage.jars, ...storage.completed];
+      const enabledIds = new Set(enabledJarIds);
+      const enabled = jars.filter((jar) => enabledIds.has(jar.id)).length;
+      return `${enabled} of ${pluralJars(jars.length)}`;
+    },
+    () => null,
+  );
+  const latestEdit = useRef(0);
+  const [draft, setDraft] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+  const timeError = draft !== null && !isReminderTime(draft)
+    ? "Enter a time like 20:00."
+    : undefined;
+
+  const handleTimeChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.currentTarget.value;
+    const edit = ++latestEdit.current;
+    setDraft(value);
+    setStatus("");
+
+    if (!isReminderTime(value)) return;
+
+    const saved = await setReminderTime(value);
+    if (edit !== latestEdit.current) return;
+
+    setDraft(null);
+    setStatus(
+      saved ? `Reminder time saved · ${value}` : "Could not save the reminder time. Try again.",
+    );
+  };
+
+  return (
+    <section aria-labelledby="reminders-heading" id="reminders">
+      <h2 className="mt-8 font-heading text-2xl font-semibold text-ink" id="reminders-heading">
+        Reminders
+      </h2>
+      <p className="mt-1 text-sm leading-6 text-soft-ink">
+        A nudge when a jar is still missing today&apos;s marble.
+      </p>
+      <Card className="mt-4 p-5">
+        <Field error={timeError} htmlFor="reminder-time" label="Reminder time">
+          <Input
+            aria-describedby={timeError ? "reminder-time-help reminder-time-error" : "reminder-time-help"}
+            aria-invalid={Boolean(timeError)}
+            className="w-40 disabled:opacity-60"
+            disabled={permission === "unsupported"}
+            id="reminder-time"
+            onChange={handleTimeChange}
+            required
+            type="time"
+            value={draft ?? time}
+          />
+          <p className="mt-2 text-sm leading-6 text-soft-ink" id="reminder-time-help">
+            Used by every jar with reminders on. Uses this device&apos;s time.
+          </p>
+        </Field>
+        <div className="mt-4 border-t border-line pt-4 text-sm leading-6 text-ink">
+          {permission === "granted" ? (
+            <p>
+              <strong>Notifications allowed.</strong>
+              {jarCount ? ` Reminders are on for ${jarCount}.` : null}
+            </p>
+          ) : permission === "default" ? (
+            <p>
+              <strong>Notifications not set up yet.</strong> Turn on a reminder from any jar
+              page and your browser will ask for permission.
+            </p>
+          ) : permission === "denied" ? (
+            <p>
+              <strong>Notifications are blocked for this site.</strong> Allow them in your
+              browser&apos;s site settings to get reminders.
+            </p>
+          ) : (
+            <p>
+              <strong>This browser can&apos;t show notifications.</strong> Your jars work as usual.
+            </p>
+          )}
+          <p className="mt-1 text-soft-ink">
+            Turn reminders on or off from each jar&apos;s page. They arrive only while Streak
+            Jar is open in a browser tab.
+          </p>
+        </div>
+      </Card>
+      <p className="mt-3 min-h-6 text-sm font-medium text-ink" role="status">
+        {status}
+      </p>
+    </section>
+  );
 }
 
 export default function SettingsPage() {
@@ -159,6 +276,8 @@ export default function SettingsPage() {
         Settings
       </h1>
 
+      <ReminderSettings />
+
       <h2 className="mt-8 font-heading text-2xl font-semibold text-ink">
         Your data
       </h2>
@@ -231,7 +350,7 @@ export default function SettingsPage() {
         </div>
       ) : null}
 
-      <p className="mt-4 min-h-6 text-sm font-medium text-ink" role="status">
+      <p aria-label="Data actions" className="mt-4 min-h-6 text-sm font-medium text-ink" role="status">
         {status}
       </p>
 
