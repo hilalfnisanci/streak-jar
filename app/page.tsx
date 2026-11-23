@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { Badge, buttonClasses, cardClasses } from "./components/ui";
 import { Jar as JarVisual } from "./components/jar";
 import { RecapEntryCard } from "./components/recap-entry-card";
+import { ReminderToast, takeReminderToast } from "./components/reminder-toast";
 import { cn } from "../lib/cn";
 import {
   getJarColor,
   jarColorSolids,
 } from "../lib/jar-colors";
 import { getLocalDateKey } from "../lib/local-date";
+import { useReminderPermission, useReminderSettings } from "../lib/reminders";
 import { type Jar, loadCompletedJars, loadJars } from "../lib/storage";
 import { computeStreak } from "../lib/streak";
 
@@ -43,12 +45,14 @@ function EmptyState() {
   );
 }
 
-function JarCard({ jar }: { jar: Jar }) {
+function JarCard({ jar, reminderTime }: { jar: Jar; reminderTime?: string }) {
+  const reminderHintId = useId();
   const colorStyles = getJarColor(jar.color);
   const streakCount = computeStreak(jar.marbles);
 
   return (
     <Link
+      aria-describedby={reminderTime ? reminderHintId : undefined}
       aria-label={`Open ${jar.name}`}
       className={cardClasses(
         cn(
@@ -77,6 +81,12 @@ function JarCard({ jar }: { jar: Jar }) {
       <p className="mt-2 text-sm font-semibold text-soft-ink">
         {jar.marbles.length} / {jar.target}
       </p>
+      {reminderTime ? (
+        <p className="mt-2 text-xs font-medium text-soft-ink" id={reminderHintId}>
+          <span aria-hidden="true">🔔 {reminderTime}</span>
+          <span className="sr-only">Reminder at {reminderTime}</span>
+        </p>
+      ) : null}
       {streakCount >= 3 ? (
         <Badge
           tone="streak"
@@ -94,56 +104,89 @@ function JarCard({ jar }: { jar: Jar }) {
 export default function Home() {
   const [jars, setJars] = useState<Jar[]>([]);
   const [completedJars, setCompletedJars] = useState<Jar[]>([]);
+  const [toastJarId, setToastJarId] = useState<string | null>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  const { time, enabledJarIds } = useReminderSettings();
+  const permission = useReminderPermission();
 
   useEffect(() => {
     setJars(loadJars());
     setCompletedJars(loadCompletedJars());
+    const toastId = takeReminderToast();
+    if (toastId) setToastJarId(toastId);
   }, []);
 
-  if (jars.length === 0 && completedJars.length === 0) {
-    return <EmptyState />;
-  }
+  const closeToast = useCallback((restoreFocus = false) => {
+    setToastJarId(null);
+    if (restoreFocus) title.current?.focus();
+  }, []);
+  const remindersOn = new Set(permission === "granted" ? enabledJarIds : []);
+  const toastJar = toastJarId && remindersOn.has(toastJarId)
+    ? jars.find((jar) => jar.id === toastJarId)
+    : undefined;
 
   return (
-    <section className="mx-auto min-h-[calc(100vh-88px)] w-full max-w-6xl px-5 pb-16 pt-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-heading text-4xl font-semibold leading-tight text-ink sm:text-5xl">
-          Your jars
-        </h1>
-        <Link
-          className={buttonClasses({
-            size: "sm",
-            className: "fixed right-5 top-5 z-10 py-3 shadow-md",
-          })}
-          href="/jars/new"
-        >
-          + New jar
-        </Link>
-      </div>
-      <RecapEntryCard
-        storage={{ jars, completed: completedJars }}
-        today={getLocalDateKey(new Date())}
+    <>
+      <ReminderToast
+        message={toastJar ? `Reminder on for ${toastJar.name} · ${time}` : ""}
+        onClose={closeToast}
       />
-      {jars.length > 0 ? (
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {jars.map((jar) => (
-            <JarCard jar={jar} key={jar.id} />
-          ))}
-        </div>
-      ) : null}
-
-      {completedJars.length > 0 ? (
-        <section className="mt-12 border-t border-line pt-8">
-          <h2 className="font-heading text-3xl font-semibold text-ink">
-            Trophy Shelf
-          </h2>
-          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {completedJars.map((jar) => (
-              <JarCard jar={jar} key={jar.id} />
-            ))}
+      {jars.length === 0 && completedJars.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <section className="mx-auto min-h-[calc(100vh-88px)] w-full max-w-6xl px-5 pb-16 pt-6">
+          <div className="flex items-center justify-between gap-4">
+            <h1
+              className="font-heading text-4xl font-semibold leading-tight text-ink sm:text-5xl"
+              ref={title}
+              tabIndex={-1}
+            >
+              Your jars
+            </h1>
+            <Link
+              className={buttonClasses({
+                size: "sm",
+                className: "fixed right-5 top-5 z-10 py-3 shadow-md",
+              })}
+              href="/jars/new"
+            >
+              + New jar
+            </Link>
           </div>
+          <RecapEntryCard
+            storage={{ jars, completed: completedJars }}
+            today={getLocalDateKey(new Date())}
+          />
+          {jars.length > 0 ? (
+            <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {jars.map((jar) => (
+                <JarCard
+                  jar={jar}
+                  key={jar.id}
+                  reminderTime={
+                    remindersOn.has(jar.id) && !jar.completedAt && jar.marbles.length < jar.target
+                      ? time
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {completedJars.length > 0 ? (
+            <section className="mt-12 border-t border-line pt-8">
+              <h2 className="font-heading text-3xl font-semibold text-ink">
+                Trophy Shelf
+              </h2>
+              <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {completedJars.map((jar) => (
+                  <JarCard jar={jar} key={jar.id} />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </section>
-      ) : null}
-    </section>
+      )}
+    </>
   );
 }

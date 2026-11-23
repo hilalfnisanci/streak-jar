@@ -3,6 +3,7 @@ import { Fraunces, Inter } from "next/font/google";
 import type { ReactNode } from "react";
 
 import { Header } from "./components/header";
+import { ReminderScheduler } from "./components/reminder-scheduler";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <body className="min-h-screen bg-cream font-sans text-ink antialiased">
         <Header />
         <main>{children}</main>
+        <ReminderScheduler />
       </body>
     </html>
   );

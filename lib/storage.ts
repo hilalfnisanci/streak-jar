@@ -63,6 +63,50 @@ export function loadJarStorage(): JarStorage {
   }
 }
 
+function hasReminderJarFields(value: unknown): value is Jar {
+  if (!value || typeof value !== "object") return false;
+
+  const jar = value as Partial<Jar>;
+  return (
+    typeof jar.id === "string" &&
+    jar.id.length > 0 &&
+    typeof jar.name === "string" &&
+    typeof jar.color === "string" &&
+    typeof jar.createdAt === "string" &&
+    typeof jar.target === "number" &&
+    Number.isFinite(jar.target) &&
+    jar.target > 0 &&
+    Array.isArray(jar.marbles) &&
+    (jar.completedAt === undefined || typeof jar.completedAt === "string")
+  );
+}
+
+// Unlike page reads, never treat invalid data as empty when deciding to notify.
+export function readJarStorageForReminders(): JarStorage | null {
+  try {
+    const raw = window.localStorage.getItem(JARS_STORAGE_KEY);
+    if (raw === null) return { jars: [], completed: [] };
+
+    const value: unknown = JSON.parse(raw);
+    const storage = Array.isArray(value) ? { jars: value, completed: [] } : value;
+    if (
+      storage &&
+      typeof storage === "object" &&
+      "jars" in storage &&
+      "completed" in storage &&
+      Array.isArray(storage.jars) &&
+      Array.isArray(storage.completed) &&
+      storage.jars.every(hasReminderJarFields) &&
+      storage.completed.every(hasReminderJarFields)
+    ) {
+      return { jars: storage.jars, completed: storage.completed };
+    }
+  } catch {
+    // Storage access or decoding failed; the scheduler must skip this check.
+  }
+  return null;
+}
+
 export function loadJars(): Jar[] {
   return loadJarStorage().jars;
 }
