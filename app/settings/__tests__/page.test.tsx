@@ -96,19 +96,19 @@ describe("SettingsPage", () => {
       .mockImplementation(() => {});
 
     render(<SettingsPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export history (CSV)" }));
 
     const blob = createObjectURL.mock.calls[0][0];
     const link = click.mock.contexts[0] as HTMLAnchorElement;
 
     expect(link.download).toMatch(/^streak-jar-history-\d{4}-\d{2}-\d{2}\.csv$/);
     expect((await readBlob(blob)).split("\r\n")).toEqual([
-      "Jar,Status,Date,Time,Streak day",
-      "Reading,active,2026-11-02,,1",
-      "Walking,active,2026-11-02,,1",
+      "jar_name,jar_status,date,time,streak_day,jar_id",
+      "Reading,active,2026-11-02,,1,jar-a",
+      "Walking,active,2026-11-02,,1,jar-b",
       "",
     ]);
-    expect(screen.getByRole("status")).toHaveTextContent("Streak history downloaded");
+    expect(screen.getByRole("status")).toHaveTextContent("History downloaded");
     expect(readStorage()).toEqual(local);
     click.mockRestore();
   });

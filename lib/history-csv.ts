@@ -1,7 +1,14 @@
 import { type Jar, type JarStorage } from "./storage";
 import { isValidDateKey, shiftDateKey } from "./streak";
 
-export const HISTORY_CSV_HEADER = ["Jar", "Status", "Date", "Time", "Streak day"];
+export const HISTORY_CSV_HEADER = [
+  "jar_name",
+  "jar_status",
+  "date",
+  "time",
+  "streak_day",
+  "jar_id",
+];
 
 // Excel opens a UTF-8 CSV as the system code page unless it starts with a BOM.
 const UTF8_BOM = "\uFEFF";
@@ -10,11 +17,12 @@ const UTF8_BOM = "\uFEFF";
 const FORMULA_PREFIX = /^[=+\-@\t\r]/;
 
 export type HistoryRow = {
-  jar: string;
+  jarName: string;
   status: "active" | "completed";
   date: string;
   time: string;
   streakDay: number;
+  jarId: string;
 };
 
 function formatLocalTime(iso: string): string | undefined {
@@ -77,11 +85,13 @@ function jarRows(jar: Jar, status: HistoryRow["status"]): HistoryRow[] {
     const at = days.get(date);
 
     rows.push({
-      jar: jar.name,
+      jarName: jar.name,
       status,
       date,
       time: at === undefined ? "" : (formatLocalTime(at) ?? ""),
       streakDay,
+      // Imported backups are not type-checked; keep a missing id from breaking the export.
+      jarId: String(jar.id ?? ""),
     });
   }
 
@@ -106,7 +116,14 @@ function toCsvCell(value: string): string {
 export function serializeHistoryCsv(rows: readonly HistoryRow[]): string {
   const lines = [
     HISTORY_CSV_HEADER,
-    ...rows.map((row) => [row.jar, row.status, row.date, row.time, String(row.streakDay)]),
+    ...rows.map((row) => [
+      row.jarName,
+      row.status,
+      row.date,
+      row.time,
+      String(row.streakDay),
+      row.jarId,
+    ]),
   ].map((cells) => cells.map(toCsvCell).join(","));
 
   return `${UTF8_BOM}${lines.join("\r\n")}\r\n`;
