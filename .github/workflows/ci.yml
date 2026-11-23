@@ -25,3 +25,28 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
       - run: pnpm test
+
+  chromium-smoke:
+    name: Chromium smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - name: Run Chromium smoke tests
+        id: smoke
+        env:
+          STREAK_JAR_E2E_OUTPUT_DIR: ${{ runner.temp }}/streak-jar-e2e
+        run: pnpm exec playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure() && steps.smoke.outcome == 'failure'
+        with:
+          name: chromium-smoke-failure
+          path: ${{ runner.temp }}/streak-jar-e2e

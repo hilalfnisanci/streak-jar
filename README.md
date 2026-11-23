@@ -8,3 +8,5 @@ Streak rule: a streak counts consecutive local days with a marble, ending today 
 ## Status
 
 This repository is currently in its initial setup phase.
+
+After installing project dependencies, run `pnpm test:e2e` to install Chromium, build the static export, and smoke-test the core jar flow locally.
